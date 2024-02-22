@@ -1,6 +1,7 @@
 import typing
 from pathlib import Path
 import xml.etree.ElementTree as ET
+import logging as log
 
 class DefaultInstrument:
     """Class encapsulating a single instrument"""
@@ -16,9 +17,19 @@ class UserInstrument:
 
 class Group:
     """Class encapsulating a single physical group"""
-    def __init__(self) -> None:
-        pass
+    def __init__(self,*, name:str, SPISid:str, GMSHid:str, type:str, properties:list["GroupProperty"]) -> None:
+        self.name:str = name
+        self.SPISid:str = SPISid
+        self.GMSHid:str = GMSHid
+        self.type:str = type
+        self.properties:list[GroupProperty] = properties
 
+class GroupProperty:
+    """Class encapsulating group properties"""
+    def __init__(self, *, name:str, id:str, description:str) -> None:
+        self.name:str = name
+        self.id:str = id
+        self.description:str = description
 
 class SimulationPreprocessing:
     """Data from preprocessing is stored here"""
@@ -73,17 +84,32 @@ def get_groups(path: Path) -> list[Group]:
     tree = ET.parse(path)
     groupList = tree.getroot()[0]
     for children in groupList:
-        name = children.find("name").text
-        SPISid = children.find("id").text
-        GMSHid = children.find("linkedMeshMaskIds").find("int").text
         if children.find("type") is not None:
-            type = children.find("type").text
-            print(type)
-            match type: 
-                case "Computational volume group":
-                    print("gdfgdfggd")
+            result.append(Group(
+                name = children.find("name").text,
+                SPISid = children.find("id").text,
+                GMSHid = children.find("linkedMeshMaskIds").find("int").text,
+                type = children.find("type").text,
+                properties = parsePropertiesList(children.find("propertiesList"))
+            ))
+        else: 
+            log.debug("While parsing groups this element ID had no type:'" + children.find("id").text + "'. Ignoring this element." )
+    return result
 
+
+def parsePropertiesList(propertiesList: ET.Element) -> list[GroupProperty]:
+    result = []
+    for children in propertiesList:
+        if children.find("name") is not None:
+            result.append(GroupProperty(
+                name = children.find("name").text,
+                id = children.find("id").text,
+                description = children.find("description").text
+            ))
+    return result
 
 
 if __name__=="__main__":
-    get_groups(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Preprocessing\\Groups\\groups.xml"))
+    log.basicConfig(level=0)
+    groups = get_groups(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Preprocessing\\Groups\\groups.xml"))
+    pass
