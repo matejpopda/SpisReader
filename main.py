@@ -7,4 +7,8 @@ if __name__=="__main__":
     path = pathlib.Path("C:/Users/matej/Desktop/VU/8/DefaultProject.spis5")
 
     data = reader.load_data(path)
+    pass
     
+
+# TODO: Make a JSON out of the data dictionary
+# TODO: Make graphs

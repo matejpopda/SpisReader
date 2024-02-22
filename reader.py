@@ -34,25 +34,29 @@ class GroupProperty:
 class SimulationPreprocessing:
     """Data from preprocessing is stored here"""
     def __init__(self, path_to_preprocessing: Path) -> None:
-        model = None # Loads file Preprocessing/Mesh/GeometricalSystem/model.msh 
-        groups: list[Group] = get_groups(path_to_preprocessing / "Groups" / "groups.xml") 
+        self.model = None 
+        # Loads file Preprocessing/Mesh/GeometricalSystem/model.msh 
+
+        self.groups: list[Group] = get_groups(path_to_preprocessing / "Groups" / "groups.xml") 
         # \Preprocessing\Groups/groups.xml
-        electrical_circuit : str = None # \Preprocessing\ElectricalCircuit\circuit.txt
+
+        self.electrical_circuit : str = (path_to_preprocessing / "ElectricalCircuit" / "circuit.txt").read_text() 
+        # \Preprocessing\ElectricalCircuit\circuit.txt
 
 
 class SimulationResults:
     """Results of a simulation (and variables that change per simulation, such as instruments are stored here)"""
     def __init__(self, path_to_results: Path) -> None:
-        default_instruments : list[DefaultInstrument] = None #get_default_instruments(path_to_results / "DefaultInstruments")
+        self.default_instruments : list[DefaultInstrument] = None #get_default_instruments(path_to_results / "DefaultInstruments")
         # List of instruments from \Simulations\Run1\DefaultInstruments
 
-        user_instruments : list[UserInstrument] = None 
+        self.user_instruments : list[UserInstrument] = None 
         # List of instruments from \Simulations\Run1\UserInstruments
 
-        global_parameters = None 
+        self.global_parameters = None 
         # \Simulations\Run1\GlobalParameters
 
-        numerical_kernel_output = None 
+        self.numerical_kernel_output = None 
         # \Simulations\Run1\NumKernel\Output
 
 
