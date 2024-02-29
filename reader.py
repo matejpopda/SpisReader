@@ -2,6 +2,8 @@ import typing
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import logging as log
+from dataclasses import dataclass
+
 
 
 class DefaultInstrument:
@@ -9,11 +11,13 @@ class DefaultInstrument:
     def __init__(self) -> None:
         pass
 
-
+@dataclass(kw_only=True)
 class UserInstrument:
     """Class encapsulating a single instrument"""
-    def __init__(self) -> None:
-        pass
+    name :str
+    # population :str
+    id: str
+    params: dict
 
 
 class Group:
@@ -52,7 +56,7 @@ class SimulationResults:
         self.default_instruments : list[DefaultInstrument] = None #get_default_instruments(path_to_results / "DefaultInstruments")
         # List of instruments from \Simulations\Run1\DefaultInstruments
 
-        self.user_instruments : list[UserInstrument] = None 
+        self.user_instruments : list[UserInstrument] = get_user_instruments(path_to_results / "UserInstruments") 
         # List of instruments from \Simulations\Run1\UserInstruments
 
         self.global_parameters = None 
@@ -97,6 +101,7 @@ class ParticleDetector:
     def __init__(self) -> None:
         self.name :str = None
         self.population :str = None
+
         self.differential_flux_2d :list[Distribution2D] = None
         #\[name]_[pop]_2D_DifferentialFlux_at_t=*s.txt
 
@@ -209,8 +214,55 @@ def parsePropertiesList(propertiesList: ET.Element) -> list[GroupProperty]:
             ))
     return result
 
+def get_user_instruments(path: Path) -> list[UserInstrument]:
+    result = []
+    file_path: Path
+    for file_path in path.glob("**/*.xml"):
+        result.append(__get_user_instrument(file_path))
+    return result
+
+def __get_user_instrument(file_path:Path) -> UserInstrument:
+    tree_root :ET.Element = ET.parse(file_path).getroot()
+
+    population=None
+
+    params = {}
+
+    for el in tree_root.find("list"):
+        key = el.find("keyName").text
+        value = None
+        match el.find("typeAString").text:
+            case "int":
+                value = el.find("valueAsInt").text
+            case "float":
+                value = el.find("valueAsFloat").text
+            case "long":
+                value = el.find("valueAsLong").text
+            case "double":
+                value = el.find("valueAsDouble").text
+            case "int":
+                value = el.find("valueAsInt").text
+            case "bool":
+                value = el.find("valueAsBoolean").text
+            case "String":
+                value = el.find("valueAsString").text
+            case _:
+                raise RuntimeError("Undefined type in XML - " + el.find("typeAString").text)
+            
+        params[key] = value
+
+
+
+    UserInstrument(
+        name=file_path.name,
+        # population=params["instrumentPop"],
+        id=tree_root.find("id").text,
+        params=params,
+    )
+
 
 if __name__=="__main__":
-    log.basicConfig(level=0)
+    log.basicConfig(level=2)
     groups = get_groups(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Preprocessing\\Groups\\groups.xml"))
+    user_instruments = get_user_instruments(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Simulations\\Run1\\UserInstruments"))
     pass
