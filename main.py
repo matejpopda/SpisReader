@@ -1,6 +1,7 @@
 import reader
 import pathlib
 import logging as log
+import typing
 
 if __name__=="__main__":
     log.basicConfig(level=0)
@@ -8,6 +9,7 @@ if __name__=="__main__":
 
     data = reader.load_data(path)
     pass
+
     
 
 # TODO: Make a JSON out of the data dictionary
