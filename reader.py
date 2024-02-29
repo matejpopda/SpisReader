@@ -3,6 +3,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 import logging as log
 
+
 class DefaultInstrument:
     """Class encapsulating a single instrument"""
     def __init__(self) -> None:
@@ -34,8 +35,9 @@ class GroupProperty:
 class SimulationPreprocessing:
     """Data from preprocessing is stored here"""
     def __init__(self, path_to_preprocessing: Path) -> None:
-        self.model = None 
+        self.model: Mesh = None 
         # Loads file Preprocessing/Mesh/GeometricalSystem/model.msh 
+        # Probably can be the same class
 
         self.groups: list[Group] = get_groups(path_to_preprocessing / "Groups" / "groups.xml") 
         # \Preprocessing\Groups/groups.xml
@@ -56,8 +58,104 @@ class SimulationResults:
         self.global_parameters = None 
         # \Simulations\Run1\GlobalParameters
 
-        self.numerical_kernel_output = None 
+        self.numerical_kernel_output : list[NumericalResults] = None 
         # \Simulations\Run1\NumKernel\Output
+
+class NumericalResults:
+    def __init__(self) -> None:
+        self.surface_potential: TimeSeries = None
+        # \Average_surface_potential_of_node_0
+
+        self.collected_currents: TimeSeries = None
+        # \collectedCurrents.txt
+
+        self.emitted_currents: TimeSeries = None
+        # \emittedCurrents.txt
+
+        self.number_of_superparticles :list[NumberOfSuperparticles] = None
+        #  \Number_of_*.txt
+
+        self.particle_detectors : list[ParticleDetector] = None
+        # \ParticleDetector[number]_[population]_*
+
+        self.time_steps: TimeSeries = None
+        # \Simulation_Control_-_time_steps*.txt
+        
+        self.spis_log :str = None
+        # \SpisNum.log
+        
+        self.total_current: TimeSeries = None
+        # \Total_current_on_spacecraft_surface*.txt
+
+class NumberOfSuperparticles:
+    def __init__(self) -> None:
+        self.population = None
+        self.data = None
+
+
+class ParticleDetector:
+    def __init__(self) -> None:
+        self.name :str = None
+        self.population :str = None
+        self.differential_flux_2d :list[Distribution2D] = None
+        #\[name]_[pop]_2D_DifferentialFlux_at_t=*s.txt
+
+        self.differential_flux_mesh :list[Mesh] = None
+        #\[name]_[pop]_3V_Differential_Flux_at*.msh
+
+        self.distribution_function_mesh :list[Mesh] = None
+        #\[name]_[pop]_3V_Distribution_Function_at*.msh
+
+        self.initial_distribution_mesh :list[Mesh] = None
+        #\[name]_[pop]_3V_Initial_Distribution_Function_at*.msh
+
+        self.angular2d_differential_flux :list[Distribution2D] = None
+        #\[name]_[pop]_Angular2D_DifferentialFlux_at_t=*s.txt
+
+        self.angular2d_function :list[Distribution2D] = None
+        #\[name]_[pop]_Angular2DF_at_t=*s.txt
+
+        self.computationalOctree : list[Mesh] = None
+        #\[name]_[pop]_computationalOctree_Time*.msh
+
+        self.differential_flux_and_energy_df : list[Distribution1D] = None
+        #\[name]_[pop]_Differential_Flux_and_Energy_DF_at_t=*s.txt
+
+        self.initial_angular2df : list[Distribution2D] = None
+        #\[name]_[pop]_Initial_Angular2DF_at_t=*s.txt
+
+        self.initial_velocity_2df : list[Distribution2D] = None
+        #\[name]_[pop]_Initial_Velocity2DF_at_t=*s.txt
+
+        self.moment : list[Moments] = None
+        #\[name]_[pop]_Moment_at_*s.txt
+
+        self.particle_list : list[ParticleList] = None
+        #\[name]_[pop]_Particle_List_at_*s.txt
+
+        self.velocity_2df : list[Distribution2D] = None 
+        #\[name]_[pop]_Velocity2DF_at_t=*s.txt
+
+
+
+class Mesh:
+    pass
+
+class TimeSeries:
+    pass
+
+class Distribution2D:
+    pass
+
+class Distribution1D:
+    pass
+
+class Moments:
+    pass
+
+class ParticleList:
+    #TODO maybe not needed
+    pass
 
 
 class Simulation:
@@ -65,7 +163,6 @@ class Simulation:
     def __init__(self, preprocessing, results) -> None:
         self.preprocessing : SimulationPreprocessing = preprocessing
         self.results : SimulationResults = results
-      
 
 def load_data(path: Path) -> Simulation:
     
