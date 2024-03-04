@@ -15,26 +15,24 @@ class DefaultInstrument:
 class UserInstrument:
     """Class encapsulating a single instrument"""
     name :str
-    # population :str
     id: str
     params: dict
 
-
+@dataclass(kw_only=True)
 class Group:
     """Class encapsulating a single physical group"""
-    def __init__(self,*, name:str, SPISid:str, GMSHid:str, type:str, properties:list["GroupProperty"]) -> None:
-        self.name:str = name
-        self.SPISid:str = SPISid
-        self.GMSHid:str = GMSHid
-        self.type:str = type
-        self.properties:list[GroupProperty] = properties
+    name:str 
+    SPISid:str 
+    GMSHid:str 
+    type:str
+    properties:list["GroupProperty"]
 
+@dataclass(kw_only=True)
 class GroupProperty:
     """Class encapsulating group properties"""
-    def __init__(self, *, name:str, id:str, description:str) -> None:
-        self.name:str = name
-        self.id:str = id
-        self.description:str = description
+    name:str
+    id:str
+    description:str
 
 class SimulationPreprocessing:
     """Data from preprocessing is stored here"""
@@ -59,7 +57,7 @@ class SimulationResults:
         self.user_instruments : list[UserInstrument] = get_user_instruments(path_to_results / "UserInstruments") 
         # List of instruments from \Simulations\Run1\UserInstruments
 
-        self.global_parameters = None 
+        self.global_parameters = dictionary_from_list_in_xml_node(ET.parse(path_to_results / "GlobalParameters" / "globalParameters.xml").getroot()) 
         # \Simulations\Run1\GlobalParameters
 
         self.numerical_kernel_output : list[NumericalResults] = None 
@@ -103,43 +101,43 @@ class ParticleDetector:
         self.population :str = None
 
         self.differential_flux_2d :list[Distribution2D] = None
-        #\[name]_[pop]_2D_DifferentialFlux_at_t=*s.txt
+        #\[name]_2D_DifferentialFlux_at_t=*s.txt
 
         self.differential_flux_mesh :list[Mesh] = None
-        #\[name]_[pop]_3V_Differential_Flux_at*.msh
+        #\[name]_3V_Differential_Flux_at*.msh
 
         self.distribution_function_mesh :list[Mesh] = None
-        #\[name]_[pop]_3V_Distribution_Function_at*.msh
+        #\[name]_3V_Distribution_Function_at*.msh
 
         self.initial_distribution_mesh :list[Mesh] = None
-        #\[name]_[pop]_3V_Initial_Distribution_Function_at*.msh
+        #\[name]_3V_Initial_Distribution_Function_at*.msh
 
         self.angular2d_differential_flux :list[Distribution2D] = None
-        #\[name]_[pop]_Angular2D_DifferentialFlux_at_t=*s.txt
+        #\[name]_Angular2D_DifferentialFlux_at_t=*s.txt
 
         self.angular2d_function :list[Distribution2D] = None
-        #\[name]_[pop]_Angular2DF_at_t=*s.txt
+        #\[name]_Angular2DF_at_t=*s.txt
 
         self.computationalOctree : list[Mesh] = None
-        #\[name]_[pop]_computationalOctree_Time*.msh
+        #\[name]_computationalOctree_Time*.msh
 
         self.differential_flux_and_energy_df : list[Distribution1D] = None
-        #\[name]_[pop]_Differential_Flux_and_Energy_DF_at_t=*s.txt
+        #\[name]_Differential_Flux_and_Energy_DF_at_t=*s.txt
 
         self.initial_angular2df : list[Distribution2D] = None
-        #\[name]_[pop]_Initial_Angular2DF_at_t=*s.txt
+        #\[name]_Initial_Angular2DF_at_t=*s.txt
 
         self.initial_velocity_2df : list[Distribution2D] = None
-        #\[name]_[pop]_Initial_Velocity2DF_at_t=*s.txt
+        #\[name]_Initial_Velocity2DF_at_t=*s.txt
 
         self.moment : list[Moments] = None
-        #\[name]_[pop]_Moment_at_*s.txt
+        #\[name]_Moment_at_*s.txt
 
         self.particle_list : list[ParticleList] = None
-        #\[name]_[pop]_Particle_List_at_*s.txt
+        #\[name]_Particle_List_at_*s.txt
 
         self.velocity_2df : list[Distribution2D] = None 
-        #\[name]_[pop]_Velocity2DF_at_t=*s.txt
+        #\[name]_Velocity2DF_at_t=*s.txt
 
 
 
@@ -171,8 +169,8 @@ class Simulation:
 
 def load_data(path: Path) -> Simulation:
     
-    results = SimulationResults(path / "DefaultStudy" / "Simulations" / "Run1" )
-    preprocessing = SimulationPreprocessing(path / "DefaultStudy" / "Preprocessing")
+    results = SimulationResults(path / "Simulations" / "Run1" )
+    preprocessing = SimulationPreprocessing(path / "Preprocessing")
 
     return Simulation(preprocessing, results)
 
@@ -218,17 +216,37 @@ def get_user_instruments(path: Path) -> list[UserInstrument]:
     result = []
     file_path: Path
     for file_path in path.glob("**/*.xml"):
-        result.append(__get_user_instrument(file_path))
+        result.append(get_user_instrument(file_path))
     return result
 
-def __get_user_instrument(file_path:Path) -> UserInstrument:
+def get_user_instrument(file_path:Path) -> UserInstrument:
     tree_root :ET.Element = ET.parse(file_path).getroot()
 
     population=None
 
-    params = {}
+    params = dictionary_from_list_in_xml_node(tree_root)
 
-    for el in tree_root.find("list"):
+    return UserInstrument(
+        name=file_path.name,
+        # population=params["instrumentPop"],
+        id=tree_root.find("id").text,
+        params=params,
+    )
+
+def dictionary_from_list_in_xml_node(node: ET.Element) -> dict:
+    # input node is either list or has a child named list
+    
+    iterable = None
+    if node.tag == "list":
+        iterable = node
+    else:
+        iterable = node.find("list")
+
+    if iterable == None:
+        raise RuntimeError("Input node doesn't have a child named list, nor is itself a list")
+
+    result: dict = {} 
+    for el in iterable:
         key = el.find("keyName").text
         value = None
         match el.find("typeAString").text:
@@ -248,21 +266,15 @@ def __get_user_instrument(file_path:Path) -> UserInstrument:
                 value = el.find("valueAsString").text
             case _:
                 raise RuntimeError("Undefined type in XML - " + el.find("typeAString").text)
-            
-        params[key] = value
-
-
-
-    UserInstrument(
-        name=file_path.name,
-        # population=params["instrumentPop"],
-        id=tree_root.find("id").text,
-        params=params,
-    )
+        result[key] = value
+    return result
 
 
 if __name__=="__main__":
     log.basicConfig(level=2)
-    groups = get_groups(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Preprocessing\\Groups\\groups.xml"))
-    user_instruments = get_user_instruments(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Simulations\\Run1\\UserInstruments"))
+    # groups = get_groups(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Preprocessing\\Groups\\groups.xml"))
+    # user_instruments = get_user_instruments(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Simulations\\Run1\\UserInstruments"))
+    # path = Path("C:/Users/matej/Desktop/VU/8/DefaultProject.spis5")  / "DefaultStudy"
+    path = Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
+    data = load_data(path)
     pass
