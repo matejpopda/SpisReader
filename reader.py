@@ -2,7 +2,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 import logging as log
 from dataclasses import dataclass
-
+import typing
 
 
 class DefaultInstrument:
@@ -15,7 +15,7 @@ class UserInstrument:
     """Class encapsulating a single instrument"""
     name :str
     id: str
-    params: dict[str, str]
+    params: dict[str, str|int|float|bool]
 
 @dataclass(kw_only=True)
 class Group:
@@ -106,13 +106,13 @@ class ParticleDetector:
     #\[name]_2D_DifferentialFlux_at_t=*s.txt
 
     differential_flux_mesh :list["Mesh"]
-    #\[name]_3V_Differential_Flux_at*.msh
+    #\[name]_3V_Differential_Flux_at_t=*s.msh
 
     distribution_function_mesh :list["Mesh"]
-    #\[name]_3V_Distribution_Function_at*.msh
+    #\[name]_3V_Distribution_Function_at_t=*s.msh
 
     initial_distribution_mesh :list["Mesh"]
-    #\[name]_3V_Initial_Distribution_Function_at*.msh
+    #\[name]_3V_Initial_Distribution_Function_at_t=*s.msh
 
     angular2d_differential_flux :list["Distribution2D"]
     #\[name]_Angular2D_DifferentialFlux_at_t=*s.txt
@@ -121,7 +121,7 @@ class ParticleDetector:
     #\[name]_Angular2DF_at_t=*s.txt
 
     computationalOctree : list["Mesh"]
-    #\[name]_computationalOctree_Time*.msh
+    #\[name]_computationalOctree_Time*s.msh
 
     differential_flux_and_energy_df : list["Distribution1D"]
     #\[name]_Differential_Flux_and_Energy_DF_at_t=*s.txt
@@ -142,24 +142,26 @@ class ParticleDetector:
     #\[name]_Velocity2DF_at_t=*s.txt
 
 
-
+@dataclass(kw_only=True)
 class Mesh:
-    pass
+    mesh:typing.Any #TODO specify
+    time: float|None
+    properties: list[str]
 
+@dataclass(kw_only=True)
 class TimeSeries:
     pass
 
+@dataclass(kw_only=True)
 class Distribution2D:
     pass
 
+@dataclass(kw_only=True)
 class Distribution1D:
     pass
 
+@dataclass(kw_only=True)
 class Moments:
-    pass
-
-class ParticleList:
-    #TODO maybe not needed
     pass
 
 
@@ -175,11 +177,6 @@ def load_data(path: Path) -> Simulation:
         preprocessing = SimulationPreprocessing(path / "Preprocessing")
     )
 
-def get_default_instruments(path: Path) -> list[DefaultInstrument]:
-    # print(path.exists())
-    # for instrument in path.glob("*"):
-    #     print(instrument)
-    return None  # type: ignore #TODO
 
 def get_groups(path: Path) -> list[Group]:
     if not path.exists(): 
@@ -227,7 +224,7 @@ def get_user_instrument(file_path:Path) -> UserInstrument:
     params = dictionary_from_list_in_xml_node(tree_root)
 
     return UserInstrument(
-        name=file_path.name,
+        name=file_path.name.replace(".xml", ""),
         # population=params["instrumentPop"],
         id=get_text_of_a_child(tree_root, "id"),
         params=params,
@@ -248,7 +245,7 @@ def get_child(element:ET.Element, tag:str) -> ET.Element:
     return x 
 
 
-def dictionary_from_list_in_xml_node(node: ET.Element) -> dict[str, str]:
+def dictionary_from_list_in_xml_node(node: ET.Element) -> dict[str, str|int|float|bool]:
     # input node is either list or has a child named list
     
     iterable = None
@@ -260,25 +257,26 @@ def dictionary_from_list_in_xml_node(node: ET.Element) -> dict[str, str]:
     if iterable == None:
         raise RuntimeError("Input node doesn't have a child named list, nor is itself a list")
 
-    result: dict[str, str] = {} 
+    result: dict[str, str|int|float|bool] = {} 
     for el in iterable:
         key = get_text_of_a_child(el, "keyName")
         value = None
         match get_text_of_a_child(el, "typeAString"):
-            case "int":
-                value = get_text_of_a_child(el, "valueAsInt")
             case "float":
-                value = get_text_of_a_child(el, "valueAsFloat")
+                value = float(get_text_of_a_child(el, "valueAsFloat"))
             case "long":
-                value = get_text_of_a_child(el, "valueAsLong")
+                value = int(get_text_of_a_child(el, "valueAsLong"))
             case "double":
-                value = get_text_of_a_child(el, "valueAsDouble")
+                value = float(get_text_of_a_child(el, "valueAsDouble"))
             case "int":
-                value = get_text_of_a_child(el, "valueAsInt")
+                value = int(get_text_of_a_child(el, "valueAsInt"))
             case "bool":
-                value = get_text_of_a_child(el, "valueAsBoolean")
+                value = get_text_of_a_child(el, "valueAsBoolean") == "true" #TODO check if correct
+                print("CHECK IF FOLLOWING 2 LINES ARE EQUAL")
+                print(get_text_of_a_child(el, "valueAsBoolean"))
+                print(value)
             case "String":
-                value = get_text_of_a_child(el, "valueAsString")
+                value = str(get_text_of_a_child(el, "valueAsString"))
             case _:
                 raise RuntimeError("Undefined type in XML - " + get_text_of_a_child(el, "typeAString"))
         result[key] = value
@@ -288,8 +286,6 @@ def get_numerical_kernel_output(file_path:Path, instruments:list[UserInstrument]
     resulting_particle_detectors : list[ParticleDetector] = []
     for instrument in instruments:
         resulting_particle_detectors.append(get_particle_detector(path, instrument))
-
-
 
     return NumericalResults(
         emitted_currents= load_time_series(file_path / "emittedCurrents.txt"),
@@ -302,6 +298,30 @@ def get_numerical_kernel_output(file_path:Path, instruments:list[UserInstrument]
         surface_potential=load_time_series(file_path / "Average_surface_potential_of_node_0_(V_,_s)__ElecNode0_Potential.txt"),
     )
 
+
+
+def get_particle_detector(path:Path, instrument:UserInstrument) -> ParticleDetector:
+    name = instrument.name
+    assert isinstance(instrument.params["instrumentPop"], str)
+    return ParticleDetector(
+        name = name ,
+        population = instrument.params["instrumentPop"],
+        differential_flux_2d = ordered_list_of_distribution2D(path, name + "_2D_DifferentialFlux_at_t=", "s.txt" ),
+        differential_flux_mesh = ordered_list_of_meshes(path, name + "_3V_Differential_Flux_at_t=", "s.msh"),
+        distribution_function_mesh = ordered_list_of_meshes(path, name + "_3V_Distribution_Function_at_t=", "s.msh"),
+        initial_distribution_mesh = ordered_list_of_meshes(path, name + "_3V_Initial_Distribution_Function_at_t=", "s.msh"),
+        angular2d_differential_flux = ordered_list_of_distribution2D(path, name + "_Angular2D_DifferentialFlux_at_t=", "s.txt" ),
+        angular2d_function = ordered_list_of_distribution2D(path, name + "_Angular2DF_at_t=", "s.txt" ),
+        computationalOctree = ordered_list_of_meshes(path, name + "_computationalOctree_Time", "s.msh"),
+        differential_flux_and_energy_df =  ordered_list_of_distribution1D(path, name + "_Differential_Flux_and_Energy_DF_at_t=", "s.txt" ),
+        initial_angular2df = ordered_list_of_distribution2D(path, name + "_Initial_Angular2DF_at_t=", "s.txt" ),
+        initial_velocity_2df = ordered_list_of_distribution2D(path, name + "_Initial_Velocity2DF_at_t=", "s.txt" ),
+        moment = ordered_list_of_Moments(path, name + "_Moment_at_", "s.txt"),
+        particle_list = ordered_list_of_particleLists(path, name + "_Particle_List_at_", "s.txt"),
+        velocity_2df = ordered_list_of_distribution2D(path, name + "_Velocity2DF_at_t=", "s.txt" )
+)
+
+
 def load_time_series(path:Path) -> TimeSeries:
     print(path)
     return path
@@ -309,11 +329,51 @@ def load_time_series(path:Path) -> TimeSeries:
 def load_mesh(path:Path) -> Mesh:
     pass
 
-def get_particle_detector(path:Path, instrument:UserInstrument) -> ParticleDetector:
+def get_files_matching_start_and_end(path:Path, start:str, end:str) -> typing.Iterable[Path]:
     pass
+
+
+def ordered_list_of_meshes(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[Mesh]:
+    return None
+
+def ordered_list_of_distribution2D(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[Distribution2D]:
+    return None
+
+
+
+def ordered_list_of_Moments(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[Moments]:
+    return None
+
+def ordered_list_of_distribution1D(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[Distribution1D]:
+    return None
+
+
 
 def get_number_of_superparticles(path:Path) -> list[NumberOfSuperparticles]:
     pass
+
+
+
+
+
+############### TODO
+
+
+
+class ParticleList:
+    #TODO maybe not needed
+    pass
+
+def ordered_list_of_particleLists(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[ParticleList]:
+    return []
+
+
+def get_default_instruments(path: Path) -> list[DefaultInstrument]:
+    # print(path.exists())
+    # for instrument in path.glob("*"):
+    #     print(instrument)
+    return None     # type: ignore 
+
 
 if __name__=="__main__":
     log.basicConfig(level=2)
