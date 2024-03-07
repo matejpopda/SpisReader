@@ -1,7 +1,7 @@
 import reader
 import pathlib
 import logging as log
-import typing
+
 
 if __name__=="__main__":
     log.basicConfig(level=0)

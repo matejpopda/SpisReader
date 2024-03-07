@@ -1,4 +1,3 @@
-import typing
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import logging as log
@@ -16,7 +15,7 @@ class UserInstrument:
     """Class encapsulating a single instrument"""
     name :str
     id: str
-    params: dict
+    params: dict[str, str]
 
 @dataclass(kw_only=True)
 class Group:
@@ -37,7 +36,7 @@ class GroupProperty:
 class SimulationPreprocessing:
     """Data from preprocessing is stored here"""
     def __init__(self, path_to_preprocessing: Path) -> None:
-        self.model: Mesh = None 
+        self.model: Mesh = load_mesh(path_to_preprocessing / "Mesh" / "GeometricalSystem" / "model.msh") 
         # Loads file Preprocessing/Mesh/GeometricalSystem/model.msh 
         # Probably can be the same class
 
@@ -51,93 +50,96 @@ class SimulationPreprocessing:
 class SimulationResults:
     """Results of a simulation (and variables that change per simulation, such as instruments are stored here)"""
     def __init__(self, path_to_results: Path) -> None:
-        self.default_instruments : list[DefaultInstrument] = None #get_default_instruments(path_to_results / "DefaultInstruments")
+        self.default_instruments : list[DefaultInstrument] = get_default_instruments(path_to_results / "DefaultInstruments")
         # List of instruments from \Simulations\Run1\DefaultInstruments
 
         self.user_instruments : list[UserInstrument] = get_user_instruments(path_to_results / "UserInstruments") 
         # List of instruments from \Simulations\Run1\UserInstruments
 
+
         self.global_parameters = dictionary_from_list_in_xml_node(ET.parse(path_to_results / "GlobalParameters" / "globalParameters.xml").getroot()) 
         # \Simulations\Run1\GlobalParameters
 
-        self.numerical_kernel_output : list[NumericalResults] = None 
+        self.numerical_kernel_output : NumericalResults = get_numerical_kernel_output(path_to_results / "NumKernel" / "Output", self.user_instruments) 
         # \Simulations\Run1\NumKernel\Output
 
+        self.monitored_data_fields = None
+
+        self.extracted_data_fields = None 
+        
+@dataclass(kw_only=True)
 class NumericalResults:
-    def __init__(self) -> None:
-        self.surface_potential: TimeSeries = None
-        # \Average_surface_potential_of_node_0
+    surface_potential: "TimeSeries"
+    # \Average_surface_potential_of_nod
+    collected_currents: "TimeSeries"
+    # \collectedCurrents.txt
 
-        self.collected_currents: TimeSeries = None
-        # \collectedCurrents.txt
+    emitted_currents: "TimeSeries"
+    # \emittedCurrents.txt
 
-        self.emitted_currents: TimeSeries = None
-        # \emittedCurrents.txt
+    number_of_superparticles :list["NumberOfSuperparticles"]
+    #  \Number_of_*.txt
 
-        self.number_of_superparticles :list[NumberOfSuperparticles] = None
-        #  \Number_of_*.txt
+    particle_detectors : list["ParticleDetector"]
+    # \ParticleDetector[number]_[population]_*
 
-        self.particle_detectors : list[ParticleDetector] = None
-        # \ParticleDetector[number]_[population]_*
+    time_steps: "TimeSeries"
+    # \Simulation_Control_-_time_steps*.txt
+    
+    spis_log :str
+    # \SpisNum.log
+    
+    total_current: "TimeSeries"
+    # \Total_current_on_spacecraft_surface*.txt
 
-        self.time_steps: TimeSeries = None
-        # \Simulation_Control_-_time_steps*.txt
-        
-        self.spis_log :str = None
-        # \SpisNum.log
-        
-        self.total_current: TimeSeries = None
-        # \Total_current_on_spacecraft_surface*.txt
-
+@dataclass(kw_only=True)
 class NumberOfSuperparticles:
-    def __init__(self) -> None:
-        self.population = None
-        self.data = None
+    population:str
+    data:"TimeSeries"
 
-
+@dataclass(kw_only=True)
 class ParticleDetector:
-    def __init__(self) -> None:
-        self.name :str = None
-        self.population :str = None
+    name :str
+    population :str
 
-        self.differential_flux_2d :list[Distribution2D] = None
-        #\[name]_2D_DifferentialFlux_at_t=*s.txt
+    differential_flux_2d :list["Distribution2D"]
+    #\[name]_2D_DifferentialFlux_at_t=*s.txt
 
-        self.differential_flux_mesh :list[Mesh] = None
-        #\[name]_3V_Differential_Flux_at*.msh
+    differential_flux_mesh :list["Mesh"]
+    #\[name]_3V_Differential_Flux_at*.msh
 
-        self.distribution_function_mesh :list[Mesh] = None
-        #\[name]_3V_Distribution_Function_at*.msh
+    distribution_function_mesh :list["Mesh"]
+    #\[name]_3V_Distribution_Function_at*.msh
 
-        self.initial_distribution_mesh :list[Mesh] = None
-        #\[name]_3V_Initial_Distribution_Function_at*.msh
+    initial_distribution_mesh :list["Mesh"]
+    #\[name]_3V_Initial_Distribution_Function_at*.msh
 
-        self.angular2d_differential_flux :list[Distribution2D] = None
-        #\[name]_Angular2D_DifferentialFlux_at_t=*s.txt
+    angular2d_differential_flux :list["Distribution2D"]
+    #\[name]_Angular2D_DifferentialFlux_at_t=*s.txt
 
-        self.angular2d_function :list[Distribution2D] = None
-        #\[name]_Angular2DF_at_t=*s.txt
+    angular2d_function :list["Distribution2D"]
+    #\[name]_Angular2DF_at_t=*s.txt
 
-        self.computationalOctree : list[Mesh] = None
-        #\[name]_computationalOctree_Time*.msh
+    computationalOctree : list["Mesh"]
+    #\[name]_computationalOctree_Time*.msh
 
-        self.differential_flux_and_energy_df : list[Distribution1D] = None
-        #\[name]_Differential_Flux_and_Energy_DF_at_t=*s.txt
+    differential_flux_and_energy_df : list["Distribution1D"]
+    #\[name]_Differential_Flux_and_Energy_DF_at_t=*s.txt
 
-        self.initial_angular2df : list[Distribution2D] = None
-        #\[name]_Initial_Angular2DF_at_t=*s.txt
+    initial_angular2df : list["Distribution2D"]
+    #\[name]_Initial_Angular2DF_at_t=*s.txt
 
-        self.initial_velocity_2df : list[Distribution2D] = None
-        #\[name]_Initial_Velocity2DF_at_t=*s.txt
+    initial_velocity_2df : list["Distribution2D"]
+    #\[name]_Initial_Velocity2DF_at_t=*s.txt
 
-        self.moment : list[Moments] = None
-        #\[name]_Moment_at_*s.txt
+    moment : list["Moments"]
+    #\[name]_Moment_at_*s.txt
 
-        self.particle_list : list[ParticleList] = None
-        #\[name]_Particle_List_at_*s.txt
+    particle_list : list["ParticleList"]
+    #\[name]_Particle_List_at_*s.txt
 
-        self.velocity_2df : list[Distribution2D] = None 
-        #\[name]_Velocity2DF_at_t=*s.txt
+    velocity_2df : list["Distribution2D"] 
+    #\[name]_Velocity2DF_at_t=*s.txt
 
 
 
@@ -161,29 +163,29 @@ class ParticleList:
     pass
 
 
+@dataclass(kw_only=True)
 class Simulation:
     """Wrapper for preprocessing information and results"""
-    def __init__(self, preprocessing, results) -> None:
-        self.preprocessing : SimulationPreprocessing = preprocessing
-        self.results : SimulationResults = results
+    preprocessing : SimulationPreprocessing
+    results : SimulationResults
 
 def load_data(path: Path) -> Simulation:
-    
-    results = SimulationResults(path / "Simulations" / "Run1" )
-    preprocessing = SimulationPreprocessing(path / "Preprocessing")
-
-    return Simulation(preprocessing, results)
+    return Simulation(
+        results = SimulationResults(path / "Simulations" / "Run1" ),
+        preprocessing = SimulationPreprocessing(path / "Preprocessing")
+    )
 
 def get_default_instruments(path: Path) -> list[DefaultInstrument]:
-    print(path.exists())
-    for instrument in path.glob("*"):
-        print(instrument)
+    # print(path.exists())
+    # for instrument in path.glob("*"):
+    #     print(instrument)
+    return None  # type: ignore #TODO
 
 def get_groups(path: Path) -> list[Group]:
     if not path.exists(): 
         raise FileNotFoundError("Missing file " +  str(path))
     
-    result = []
+    result:list[Group] = []
     
     tree = ET.parse(path)
     groupList = tree.getroot()[0]
@@ -197,7 +199,7 @@ def get_groups(path: Path) -> list[Group]:
                 properties = parsePropertiesList(children.find("propertiesList"))
             ))
         else: 
-            log.debug("While parsing groups this element ID had no type:'" + children.find("id").text + "'. Ignoring this element." )
+            log.debug("While parsing groups this element ID had no type:'" + str(children.find("id").text) + "'. Ignoring this element." )
     return result
 
 
@@ -221,9 +223,6 @@ def get_user_instruments(path: Path) -> list[UserInstrument]:
 
 def get_user_instrument(file_path:Path) -> UserInstrument:
     tree_root :ET.Element = ET.parse(file_path).getroot()
-
-    population=None
-
     params = dictionary_from_list_in_xml_node(tree_root)
 
     return UserInstrument(
@@ -233,7 +232,7 @@ def get_user_instrument(file_path:Path) -> UserInstrument:
         params=params,
     )
 
-def dictionary_from_list_in_xml_node(node: ET.Element) -> dict:
+def dictionary_from_list_in_xml_node(node: ET.Element) -> dict[str, str]:
     # input node is either list or has a child named list
     
     iterable = None
@@ -245,7 +244,7 @@ def dictionary_from_list_in_xml_node(node: ET.Element) -> dict:
     if iterable == None:
         raise RuntimeError("Input node doesn't have a child named list, nor is itself a list")
 
-    result: dict = {} 
+    result: dict[str, str] = {} 
     for el in iterable:
         key = el.find("keyName").text
         value = None
@@ -269,6 +268,36 @@ def dictionary_from_list_in_xml_node(node: ET.Element) -> dict:
         result[key] = value
     return result
 
+def get_numerical_kernel_output(file_path:Path, instruments:list[UserInstrument]) -> NumericalResults:
+    resulting_particle_detectors : list[ParticleDetector] = []
+    for instrument in instruments:
+        resulting_particle_detectors.append(get_particle_detector(path, instrument))
+
+
+
+    return NumericalResults(
+        emitted_currents= load_time_series(file_path / "emittedCurrents.txt"),
+        number_of_superparticles=get_number_of_superparticles(file_path),
+        particle_detectors=resulting_particle_detectors,
+        time_steps=load_time_series(file_path / "Simulation_Control_-_time_steps_(s_._s)__TimeSteps.txt"),
+        spis_log=(file_path / "SpisNum.log").read_text(encoding="utf_8", errors='backslashreplace'),
+        total_current=load_time_series(file_path / "Total_current_on_spacecraft_surface._SCTotalCurrent.txt"),
+        collected_currents=load_time_series(file_path / "collectedCurrents.txt"),
+        surface_potential=load_time_series(file_path / "Average_surface_potential_of_node_0_(V_,_s)__ElecNode0_Potential.txt"),
+    )
+
+def load_time_series(path:Path) -> TimeSeries:
+    print(path)
+    return path
+
+def load_mesh(path:Path) -> Mesh:
+    pass
+
+def get_particle_detector(path:Path, instrument:UserInstrument) -> ParticleDetector:
+    pass
+
+def get_number_of_superparticles(path:Path) -> list[NumberOfSuperparticles]:
+    pass
 
 if __name__=="__main__":
     log.basicConfig(level=2)
