@@ -177,7 +177,6 @@ def load_data(path: Path) -> Simulation:
         preprocessing = SimulationPreprocessing(path / "Preprocessing")
     )
 
-
 def get_groups(path: Path) -> list[Group]:
     if not path.exists(): 
         raise FileNotFoundError("Missing file " +  str(path))
@@ -199,7 +198,6 @@ def get_groups(path: Path) -> list[Group]:
         else: 
             log.debug("While parsing groups this element ID had no type:'" + get_text_of_a_child(children, "id") + "'. Ignoring this element." )
     return result
-
 
 def parsePropertiesList(propertiesList: ET.Element) -> list[GroupProperty]:
     result: list[GroupProperty] = []
@@ -244,7 +242,6 @@ def get_child(element:ET.Element, tag:str) -> ET.Element:
     assert x is not None
     return x 
 
-
 def dictionary_from_list_in_xml_node(node: ET.Element) -> dict[str, str|int|float|bool]:
     # input node is either list or has a child named list
     
@@ -285,7 +282,7 @@ def dictionary_from_list_in_xml_node(node: ET.Element) -> dict[str, str|int|floa
 def get_numerical_kernel_output(file_path:Path, instruments:list[UserInstrument]) -> NumericalResults:
     resulting_particle_detectors : list[ParticleDetector] = []
     for instrument in instruments:
-        resulting_particle_detectors.append(get_particle_detector(path, instrument))
+        resulting_particle_detectors.append(get_particle_detector(file_path, instrument))
 
     return NumericalResults(
         emitted_currents= load_time_series(file_path / "emittedCurrents.txt"),
@@ -297,8 +294,6 @@ def get_numerical_kernel_output(file_path:Path, instruments:list[UserInstrument]
         collected_currents=load_time_series(file_path / "collectedCurrents.txt"),
         surface_potential=load_time_series(file_path / "Average_surface_potential_of_node_0_(V_,_s)__ElecNode0_Potential.txt"),
     )
-
-
 
 def get_particle_detector(path:Path, instrument:UserInstrument) -> ParticleDetector:
     name = instrument.name
@@ -321,23 +316,22 @@ def get_particle_detector(path:Path, instrument:UserInstrument) -> ParticleDetec
         velocity_2df = ordered_list_of_distribution2D(path, name + "_Velocity2DF_at_t=", "s.txt" )
 )
 
-
-def load_time_series(path:Path) -> TimeSeries:
-    print(path)
-    return path
-
-def load_mesh(path:Path) -> Mesh:
-    pass
-
 def get_files_matching_start_and_end(path:Path, start:str, end:str) -> typing.Iterable[Path]:
-    pass
+    return path.glob(start + "*" + end)
 
 
 def ordered_list_of_meshes(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[Mesh]:
-    return None
+    result :list[Mesh] = []
+    for i in (get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name)):
+        mesh = load_mesh(i)
+        mesh.time = float(i.name.replace(start_of_file_name, "").replace(end_of_file_name, ""))
+        result.append(mesh)
+
+    result.sort(key=lambda mesh: (mesh.time is None, mesh.time))
+    return result
 
 def ordered_list_of_distribution2D(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[Distribution2D]:
-    return None
+    return None #TODO Consider using encoding with pandas
 
 
 
@@ -352,14 +346,22 @@ def ordered_list_of_distribution1D(path:Path, start_of_file_name:str, end_of_fil
 def get_number_of_superparticles(path:Path) -> list[NumberOfSuperparticles]:
     pass
 
+def load_time_series(path:Path) -> TimeSeries:
+    return path
 
+def load_mesh(path:Path) -> Mesh:
+    """Loads mesh from path, does not guarantee that time will not be None
+    """
+    return Mesh(
+        time=None,
+        mesh=None,
+        properties=[]
+    )
+    
 
 
 
 ############### TODO
-
-
-
 class ParticleList:
     #TODO maybe not needed
     pass
@@ -380,6 +382,6 @@ if __name__=="__main__":
     # groups = get_groups(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Preprocessing\\Groups\\groups.xml"))
     # user_instruments = get_user_instruments(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Simulations\\Run1\\UserInstruments"))
     # path = Path("C:/Users/matej/Desktop/VU/8/DefaultProject.spis5")  / "DefaultStudy"
-    path = Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
-    data = load_data(path)
+    test_path = Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
+    data = load_data(test_path)
     pass
