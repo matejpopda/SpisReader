@@ -191,31 +191,32 @@ def get_groups(path: Path) -> list[Group]:
     groupList = tree.getroot()[0]
     for children in groupList:
         if children.find("type") is not None:
+
             result.append(Group(
-                name = children.find("name").text,
-                SPISid = children.find("id").text,
-                GMSHid = children.find("linkedMeshMaskIds").find("int").text,
-                type = children.find("type").text,
-                properties = parsePropertiesList(children.find("propertiesList"))
+                name = get_text_of_a_child(children, "name"),
+                SPISid = get_text_of_a_child(children, "id"),
+                GMSHid = get_text_of_a_child(get_child(children,"linkedMeshMaskIds"), "int"),
+                type = get_text_of_a_child(children, "type"),
+                properties = parsePropertiesList(get_child(children, "propertiesList"))
             ))
         else: 
-            log.debug("While parsing groups this element ID had no type:'" + str(children.find("id").text) + "'. Ignoring this element." )
+            log.debug("While parsing groups this element ID had no type:'" + get_text_of_a_child(children, "id") + "'. Ignoring this element." )
     return result
 
 
 def parsePropertiesList(propertiesList: ET.Element) -> list[GroupProperty]:
-    result = []
+    result: list[GroupProperty] = []
     for children in propertiesList:
         if children.find("name") is not None:
             result.append(GroupProperty(
-                name = children.find("name").text,
-                id = children.find("id").text,
-                description = children.find("description").text
+                name = get_text_of_a_child(children, "name"),
+                id = get_text_of_a_child(children, "id"),
+                description = get_text_of_a_child(children, "description")
             ))
     return result
 
 def get_user_instruments(path: Path) -> list[UserInstrument]:
-    result = []
+    result:list[UserInstrument] = []
     file_path: Path
     for file_path in path.glob("**/*.xml"):
         result.append(get_user_instrument(file_path))
@@ -228,9 +229,24 @@ def get_user_instrument(file_path:Path) -> UserInstrument:
     return UserInstrument(
         name=file_path.name,
         # population=params["instrumentPop"],
-        id=tree_root.find("id").text,
+        id=get_text_of_a_child(tree_root, "id"),
         params=params,
     )
+
+def get_text_of_a_child(element:ET.Element, tag:str) -> str:
+    # This function mainly exists for the type checker
+    x: ET.Element|None = element.find(tag)
+    assert x is not None
+    assert x.text is not None
+    y:str = x.text
+    return y 
+
+def get_child(element:ET.Element, tag:str) -> ET.Element:
+    # This function mainly exists for the type checker
+    x: ET.Element|None = element.find(tag)
+    assert x is not None
+    return x 
+
 
 def dictionary_from_list_in_xml_node(node: ET.Element) -> dict[str, str]:
     # input node is either list or has a child named list
@@ -246,25 +262,25 @@ def dictionary_from_list_in_xml_node(node: ET.Element) -> dict[str, str]:
 
     result: dict[str, str] = {} 
     for el in iterable:
-        key = el.find("keyName").text
+        key = get_text_of_a_child(el, "keyName")
         value = None
-        match el.find("typeAString").text:
+        match get_text_of_a_child(el, "typeAString"):
             case "int":
-                value = el.find("valueAsInt").text
+                value = get_text_of_a_child(el, "valueAsInt")
             case "float":
-                value = el.find("valueAsFloat").text
+                value = get_text_of_a_child(el, "valueAsFloat")
             case "long":
-                value = el.find("valueAsLong").text
+                value = get_text_of_a_child(el, "valueAsLong")
             case "double":
-                value = el.find("valueAsDouble").text
+                value = get_text_of_a_child(el, "valueAsDouble")
             case "int":
-                value = el.find("valueAsInt").text
+                value = get_text_of_a_child(el, "valueAsInt")
             case "bool":
-                value = el.find("valueAsBoolean").text
+                value = get_text_of_a_child(el, "valueAsBoolean")
             case "String":
-                value = el.find("valueAsString").text
+                value = get_text_of_a_child(el, "valueAsString")
             case _:
-                raise RuntimeError("Undefined type in XML - " + el.find("typeAString").text)
+                raise RuntimeError("Undefined type in XML - " + get_text_of_a_child(el, "typeAString"))
         result[key] = value
     return result
 
