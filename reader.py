@@ -5,6 +5,9 @@ from dataclasses import dataclass
 import typing
 import meshio
 import meshio._mesh
+import pyvista
+import pyvista.core.dataset
+
 
 class DefaultInstrument:
     """Class encapsulating a single instrument"""
@@ -147,7 +150,7 @@ class ParticleDetector:
 
 @dataclass(kw_only=True)
 class Mesh:
-    mesh:meshio._mesh.Mesh
+    mesh:pyvista.core.dataset.DataSet
     time: float|None
     properties: list[str]
 
@@ -356,11 +359,13 @@ def load_mesh(path:Path) -> Mesh:
     """Loads mesh from path, does not guarantee that time will not be None
     """
     mesh = meshio.read(path)
+    properties :list[str] = [x for x in mesh.cell_data.keys()]
     return Mesh(
         time=None,
-        mesh=mesh,
-        properties=[]
+        mesh=pyvista.wrap(mesh),
+        properties=properties
     )
+
     
 
 
