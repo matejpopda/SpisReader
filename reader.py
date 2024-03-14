@@ -3,7 +3,8 @@ import xml.etree.ElementTree as ET
 import logging as log
 from dataclasses import dataclass
 import typing
-
+import meshio
+import meshio._mesh
 
 class DefaultInstrument:
     """Class encapsulating a single instrument"""
@@ -36,8 +37,10 @@ class GroupProperty:
 class SimulationPreprocessing:
     """Data from preprocessing is stored here"""
     def __init__(self, path_to_preprocessing: Path) -> None:
-        self.model: Mesh = load_mesh(path_to_preprocessing / "Mesh" / "GeometricalSystem" / "model.msh") 
-        # Loads file Preprocessing/Mesh/GeometricalSystem/model.msh 
+        model_path : list[Path] = list((path_to_preprocessing / "Mesh" / "GeometricalSystem").glob("*"))
+        assert len(model_path) == 1
+        self.model: Mesh = load_mesh(model_path[0]) 
+        # Loads file Preprocessing/Mesh/GeometricalSystem/*.msh 
         # Probably can be the same class
 
         self.groups: list[Group] = get_groups(path_to_preprocessing / "Groups" / "groups.xml") 
@@ -144,7 +147,7 @@ class ParticleDetector:
 
 @dataclass(kw_only=True)
 class Mesh:
-    mesh:typing.Any #TODO specify
+    mesh:meshio._mesh.Mesh
     time: float|None
     properties: list[str]
 
@@ -352,9 +355,10 @@ def load_time_series(path:Path) -> TimeSeries:
 def load_mesh(path:Path) -> Mesh:
     """Loads mesh from path, does not guarantee that time will not be None
     """
+    mesh = meshio.read(path)
     return Mesh(
         time=None,
-        mesh=None,
+        mesh=mesh,
         properties=[]
     )
     
@@ -378,10 +382,12 @@ def get_default_instruments(path: Path) -> list[DefaultInstrument]:
 
 
 if __name__=="__main__":
-    log.basicConfig(level=2)
+    log.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=2)
+    log.info("Started loading")
     # groups = get_groups(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Preprocessing\\Groups\\groups.xml"))
     # user_instruments = get_user_instruments(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Simulations\\Run1\\UserInstruments"))
     # path = Path("C:/Users/matej/Desktop/VU/8/DefaultProject.spis5")  / "DefaultStudy"
     test_path = Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
     data = load_data(test_path)
+    log.info("Done loading")
     pass
