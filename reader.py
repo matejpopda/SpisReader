@@ -7,6 +7,7 @@ import meshio
 import meshio._mesh
 import pyvista
 import pyvista.core.dataset
+import pickle
 
 
 class DefaultInstrument:
@@ -336,6 +337,19 @@ def ordered_list_of_meshes(path:Path, start_of_file_name:str, end_of_file_name:s
     result.sort(key=lambda mesh: (mesh.time is None, mesh.time))
     return result
 
+
+def load_mesh(path:Path) -> Mesh:
+    """Loads mesh from path, does not guarantee that time will not be None
+    """
+    mesh = meshio.read(path, file_format="gmsh")
+    properties :list[str] = [x for x in mesh.cell_data.keys()]
+    return Mesh(
+        time=None,
+        mesh=pyvista.wrap(mesh),
+        properties=properties
+    )
+
+
 def ordered_list_of_distribution2D(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[Distribution2D]:
     return None #TODO Consider using encoding with pandas
 
@@ -354,17 +368,6 @@ def get_number_of_superparticles(path:Path) -> list[NumberOfSuperparticles]:
 
 def load_time_series(path:Path) -> TimeSeries:
     return path
-
-def load_mesh(path:Path) -> Mesh:
-    """Loads mesh from path, does not guarantee that time will not be None
-    """
-    mesh = meshio.read(path, file_format="gmsh")
-    properties :list[str] = [x for x in mesh.cell_data.keys()]
-    return Mesh(
-        time=None,
-        mesh=pyvista.wrap(mesh),
-        properties=properties
-    )
 
     
 
@@ -396,4 +399,5 @@ if __name__=="__main__":
     test_path = Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
     data = load_data(test_path)
     log.info("Done loading")
+    log.info("The data has the size of approximately " + str(len(pickle.dumps(data)) // 1000**2) + " megabytes")
     pass
