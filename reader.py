@@ -422,7 +422,7 @@ def load_distribution1d(path: Path) -> Distribution1D:
 
 
 def load_time_series(path:Path) -> TimeSeries:
-    data: pandas.DataFrame = pandas.read_csv(path, sep='\t| ', engine='python') #type: ignore
+    data: pandas.DataFrame = pandas.read_csv(path, sep=', ', engine='python') #type: ignore
     return TimeSeries(data=data)
 
 def load_distribution2d(path: Path) -> Distribution2D:
