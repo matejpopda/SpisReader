@@ -161,15 +161,20 @@ class TimeSeries:
 
 @dataclass(kw_only=True)
 class Distribution2D:
-    pass
+    time: float|None
+    data : typing.Any
+
 
 @dataclass(kw_only=True)
 class Distribution1D:
-    pass
+    time: float|None
+    data: typing.Any
 
 @dataclass(kw_only=True)
 class Moments:
-    pass
+    time: float|None
+    data : dict[str, float|list[float]]
+
 
 
 @dataclass(kw_only=True)
@@ -351,17 +356,72 @@ def load_mesh(path:Path) -> Mesh:
 
 
 def ordered_list_of_distribution2D(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[Distribution2D]:
-    return None #TODO Consider using encoding with pandas
+    result :list[Distribution2D] = []
+    for i in (get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name)):
+        distribution = load_distribution2d(i)
+        distribution.time = float(i.name.replace(start_of_file_name, "").replace(end_of_file_name, ""))
+        result.append(distribution)
 
+    result.sort(key=lambda distribution: (distribution.time is None, distribution.time))
+    return result 
+
+
+def load_distribution2d(path: Path) -> Distribution2D:
+        #TODO Consider using encoding with pandas
+    #It is basically a 3d grid?
+    return Distribution2D(time=None, data=None)
 
 
 def ordered_list_of_Moments(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[Moments]:
-    return None
+    result :list[Moments] = []
+    for i in (get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name)):
+        moments = load_moments(i)
+        moments.time = float(i.name.replace(start_of_file_name, "").replace(end_of_file_name, ""))
+        result.append(moments)
+
+    result.sort(key=lambda moments: (moments.time is None, moments.time))
+    return result
+
+def load_moments(path: Path) -> Moments:
+    def string_to_vec(string : str) -> list[float]:
+        return [float(i) for i in string.split(", ")]
+
+    result: dict[str, float|list[float]] = {}
+
+    data:list[str] = []
+    with open(path, "r") as file:
+        data = file.readlines()
+
+    result["Moment of the distribution function: Density"] = float(data[2])
+    result["Moment of the distribution function: Velocity in GMSH frame"] = string_to_vec(data[4])
+    result["Moment of the distribution function: Mean energy"] = float(data[6])
+
+    result["Moment of the flux distribution function at the detector surface : Flux"] = float(data[10].replace("m-1.s-2 ", ""))
+    result["Moment of the flux distribution function at the detector surface: Velocity in GMSH frame"] = string_to_vec(data[12])
+    result["Moment of the flux distribution function at the detector surface: Mean energy"] = float(data[14])
+
+    result["Moment of the initial distribution function: Density"] = float(data[18])
+    result["Moment of the initial distribution function: Velocity in GMSH frame"] = string_to_vec(data[20])
+    result["Moment of the initial distribution function: Mean energy"] = float(data[22])
+
+    return Moments(
+        time=None,
+        data=result
+    )
+
 
 def ordered_list_of_distribution1D(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[Distribution1D]:
-    return None
+    result :list[Distribution1D] = []
+    for i in (get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name)):
+        distribution = load_distribution1d(i)
+        distribution.time = float(i.name.replace(start_of_file_name, "").replace(end_of_file_name, ""))
+        result.append(distribution)
 
+    result.sort(key=lambda distribution: (distribution.time is None, distribution.time))
+    return result
 
+def load_distribution1d(path: Path) -> Distribution1D:
+    return Distribution1D(data=None, time=None)
 
 def get_number_of_superparticles(path:Path) -> list[NumberOfSuperparticles]:
     pass
