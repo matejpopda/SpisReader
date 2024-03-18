@@ -1,9 +1,9 @@
 import meshio._mesh as mesh
-from pyvista.core.dataset import DataSet
+from pyvista.core.pointset import UnstructuredGrid
 from typing import overload
 
 @overload
-def wrap(dataset: mesh.Mesh) -> DataSet:
+def wrap(dataset: mesh.Mesh) -> UnstructuredGrid:
     ...
 
 @overload

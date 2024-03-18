@@ -150,7 +150,7 @@ class ParticleDetector:
 
 @dataclass(kw_only=True)
 class Mesh:
-    mesh:pyvista.core.dataset.DataSet
+    mesh:pyvista.core.pointset.UnstructuredGrid
     time: float|None
     properties: list[str]
 
@@ -358,7 +358,7 @@ def load_time_series(path:Path) -> TimeSeries:
 def load_mesh(path:Path) -> Mesh:
     """Loads mesh from path, does not guarantee that time will not be None
     """
-    mesh = meshio.read(path)
+    mesh = meshio.read(path, file_format="gmsh")
     properties :list[str] = [x for x in mesh.cell_data.keys()]
     return Mesh(
         time=None,
@@ -384,6 +384,7 @@ def get_default_instruments(path: Path) -> list[DefaultInstrument]:
     # for instrument in path.glob("*"):
     #     print(instrument)
     return None     # type: ignore 
+
 
 
 if __name__=="__main__":
