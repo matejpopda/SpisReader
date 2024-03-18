@@ -8,6 +8,7 @@ import meshio._mesh
 import pyvista
 import pyvista.core.dataset
 import pickle
+import pandas
 
 
 class DefaultInstrument:
@@ -157,7 +158,7 @@ class Mesh:
 
 @dataclass(kw_only=True)
 class TimeSeries:
-    pass
+    data: pandas.DataFrame
 
 @dataclass(kw_only=True)
 class Distribution2D:
@@ -168,7 +169,7 @@ class Distribution2D:
 @dataclass(kw_only=True)
 class Distribution1D:
     time: float|None
-    data: typing.Any
+    data: pandas.DataFrame
 
 @dataclass(kw_only=True)
 class Moments:
@@ -366,12 +367,6 @@ def ordered_list_of_distribution2D(path:Path, start_of_file_name:str, end_of_fil
     return result 
 
 
-def load_distribution2d(path: Path) -> Distribution2D:
-        #TODO Consider using encoding with pandas
-    #It is basically a 3d grid?
-    return Distribution2D(time=None, data=None)
-
-
 def ordered_list_of_Moments(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[Moments]:
     result :list[Moments] = []
     for i in (get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name)):
@@ -421,15 +416,19 @@ def ordered_list_of_distribution1D(path:Path, start_of_file_name:str, end_of_fil
     return result
 
 def load_distribution1d(path: Path) -> Distribution1D:
-    return Distribution1D(data=None, time=None)
+    data: pandas.DataFrame = pandas.read_csv(path, sep='\t| ', engine='python') #type: ignore
+    return Distribution1D(data=data, time=None)
 
-def get_number_of_superparticles(path:Path) -> list[NumberOfSuperparticles]:
-    pass
+
 
 def load_time_series(path:Path) -> TimeSeries:
-    return path
+    data: pandas.DataFrame = pandas.read_csv(path, sep='\t| ', engine='python') #type: ignore
+    return TimeSeries(data=data)
 
-    
+def load_distribution2d(path: Path) -> Distribution2D:
+        #TODO Consider using encoding with pandas
+    #It is basically a 3d grid?
+    return Distribution2D(time=None, data=None)
 
 
 
@@ -440,6 +439,10 @@ class ParticleList:
 
 def ordered_list_of_particleLists(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[ParticleList]:
     return []
+
+
+def get_number_of_superparticles(path:Path) -> list[NumberOfSuperparticles]:
+    pass
 
 
 def get_default_instruments(path: Path) -> list[DefaultInstrument]:
