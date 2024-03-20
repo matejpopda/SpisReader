@@ -469,7 +469,7 @@ def load_distribution2d(path: Path) -> Distribution2D:
         coords_dic[second_cord] = y_cords
         coords_dic[third_cord] = z_cords
         dims = (first_cord, second_cord, third_cord)
-        plotted_function = file.readline()
+        plotted_function = file.readline().strip().strip("[]").strip()
         
         for z in range(z_size):
             for y in range(y_size):
