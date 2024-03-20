@@ -9,6 +9,8 @@ import pyvista
 import pyvista.core.dataset
 import pickle
 import pandas
+import numpy as np
+import xarray
 
 
 class DefaultInstrument:
@@ -163,8 +165,8 @@ class TimeSeries:
 @dataclass(kw_only=True)
 class Distribution2D:
     time: float|None
-    data : typing.Any
-
+    data : xarray.DataArray
+    plotted_function : str
 
 @dataclass(kw_only=True)
 class Distribution1D:
@@ -426,9 +428,60 @@ def load_time_series(path:Path) -> TimeSeries:
     return TimeSeries(data=data)
 
 def load_distribution2d(path: Path) -> Distribution2D:
-        #TODO Consider using encoding with pandas
-    #It is basically a 3d grid?
-    return Distribution2D(time=None, data=None)
+    # print("reading file", path)
+
+    # first we create xarray coords, from the first 3 lists of numbers
+
+    # first we find interesting lines (named)
+    lines_with_text: list[int] = []
+    with open(path, 'r') as file:
+        for line_num, line in enumerate(file):
+            if "[" in line:
+                lines_with_text.append(line_num)
+
+    x_size :int = lines_with_text[1] - lines_with_text[0] - 1
+    y_size :int = lines_with_text[2] - lines_with_text[1] - 1
+    z_size :int = lines_with_text[3] - lines_with_text[2] - 1
+    # print(x_size, y_size, z_size)
+
+    coords_dic : dict[str, list[float]] = {}
+    dims :tuple[str, str, str]
+    plotted_function : str
+
+
+    x_cords: list[float] = []
+    y_cords: list[float] = []
+    z_cords: list[float] = []
+
+    data = np.zeros((x_size, y_size, z_size))
+
+    with open(path, 'r') as file:
+        first_cord:str = file.readline().strip().strip("[]")
+        for _ in range(x_size):
+            x_cords.append(float(file.readline()))
+        second_cord:str = file.readline().strip().strip("[]")
+        for _ in range(y_size):
+            y_cords.append(float(file.readline()))
+        third_cord:str = file.readline().strip().strip("[]")
+        for _ in range(z_size):
+            z_cords.append(float(file.readline()))
+        coords_dic[first_cord] = x_cords
+        coords_dic[second_cord] = y_cords
+        coords_dic[third_cord] = z_cords
+        dims = (first_cord, second_cord, third_cord)
+        plotted_function = file.readline()
+        
+        for z in range(z_size):
+            for y in range(y_size):
+                x = np.fromstring(str(file.readline()).strip(), dtype=float, sep=" ")
+                # print(x[:])
+                data[:,y,z] = x[:]
+            file.readline()
+
+
+    result = xarray.DataArray(data=data, dims=dims, coords=coords_dic)
+
+    return Distribution2D(time=None, data=result, plotted_function=plotted_function)
 
 
 
