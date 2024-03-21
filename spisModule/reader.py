@@ -574,15 +574,8 @@ def save_as_pickle(simulation: Simulation, path: Path):
 
 
 def load_pickle(path:Path) -> Simulation:
-    with open(test_path / 'processed_simulation.pkl', 'rb') as f:
+    with open(path, 'rb') as f:
         deserialized_object = pickle.load(f)    
     assert isinstance(deserialized_object, Simulation)
     return deserialized_object
-
-if __name__=="__main__":
-    test_path = Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
-    result = load_from_SPIS(test_path)
-    save_as_pickle(result, test_path /'processed_simulation.pkl')
-
-    pass
 

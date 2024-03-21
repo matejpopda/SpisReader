@@ -1,4 +1,4 @@
-from reader import Simulation, save_as_pickle, load_from_SPIS, load_pickle  
+from .reader import Simulation, save_as_pickle, load_from_SPIS, load_pickle  
 import logging as log
 
 

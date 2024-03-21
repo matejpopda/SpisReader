@@ -1,5 +1,5 @@
 /__pycache__
 /.conda
 /.venv
-
+*/__pycache__
 notes.md

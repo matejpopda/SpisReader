@@ -1,13 +1,21 @@
-import reader
+import spisModule as spis
 import pathlib
 import logging as log
 
-
 if __name__=="__main__":
-    log.basicConfig(level=0)
-    path = pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
 
-    data = reader.load_data(path)
+    logger = log.getLogger()
+    logger.setLevel(log.DEBUG)
+
+
+    path = pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
+    
+    spis.save_as_pickle(spis.load_from_SPIS(path), path /'processed_simulation.pkl')
+
+    result = spis.load_pickle(path /'processed_simulation.pkl')
+
+
+
     pass
 
     
