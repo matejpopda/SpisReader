@@ -76,7 +76,8 @@ class SimulationResults:
         self.numerical_kernel_output : NumericalResults = get_numerical_kernel_output(path_to_results / "NumKernel" / "Output", self.user_instruments) 
         # \Simulations\Run1\NumKernel\Output
 
-        self.monitored_data_fields = None
+        self.monitored_data_fields = None # TODO I think the data can be more easily gotten from numerical kernel
+        # I think the data is split, the .msh file contains what time it was at what timestep, the .nc file contains the data for each timestep
 
         self.extracted_data_fields = None 
         
@@ -556,16 +557,32 @@ def load_number_of_superparticles(path:Path) -> NumberOfSuperparticles:
     return NumberOfSuperparticles(data=data, population=population)
 
 
+def load_from_SPIS(path: Path) -> Simulation:
+    log.info("Started loading")
 
+    data = load_data(path)
+    log.info("Done loading")
+    return data
+
+def save_as_pickle(simulation: Simulation, path: Path):
+    # Serialize the object
+    serialized_data = pickle.dumps(simulation)
+    log.info("The data has the size of approximately " + str(len(pickle.dumps(serialized_data)) // 1000**2) + " megabytes")
+    with open(path, 'wb') as f:
+        f.write(serialized_data)
+    log.info("Saved the data to " + str(path))
+
+
+def load_pickle(path:Path) -> Simulation:
+    with open(test_path / 'processed_simulation.pkl', 'rb') as f:
+        deserialized_object = pickle.load(f)    
+    assert isinstance(deserialized_object, Simulation)
+    return deserialized_object
 
 if __name__=="__main__":
-    log.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=log.INFO)
-    log.info("Started loading")
-    # groups = get_groups(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Preprocessing\\Groups\\groups.xml"))
-    # user_instruments = get_user_instruments(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Simulations\\Run1\\UserInstruments"))
-    # path = Path("C:/Users/matej/Desktop/VU/8/DefaultProject.spis5")  / "DefaultStudy"
     test_path = Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
-    data = load_data(test_path)
-    log.info("Done loading")
-    log.info("The data has the size of approximately " + str(len(pickle.dumps(data)) // 1000**2) + " megabytes")
+    result = load_from_SPIS(test_path)
+    save_as_pickle(result, test_path /'processed_simulation.pkl')
+
     pass
+
