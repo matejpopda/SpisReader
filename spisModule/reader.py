@@ -558,10 +558,10 @@ def load_number_of_superparticles(path:Path) -> NumberOfSuperparticles:
 
 
 def load_from_SPIS(path: Path) -> Simulation:
-    log.info("Started loading")
+    log.info("Started loading SPIS simulation at " + str(path))
 
     data = load_data(path)
-    log.info("Done loading")
+    log.info("Done loading SPIS simulation at"  + str(path))
     return data
 
 def save_as_pickle(simulation: Simulation, path: Path):
