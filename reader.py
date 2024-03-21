@@ -196,10 +196,13 @@ class Simulation:
     results : SimulationResults
 
 
-def LogFileOpening[T, **P](function: typing.Callable[[Path], T]) -> typing.Callable[[Path], T]:
-    '''A decorator to add logging to a function that reads a file given a path.'''
+def LogFileOpening[T](function: typing.Callable[[Path], T]) -> typing.Callable[[Path], T]:
+    '''A decorator to add logging to a function that reads a file given a path. Furthermore it checks if a file exist.'''
     def inner(path: Path) -> T:
         log.debug(f"Reading file:\t {str(path)} \t during the call of function {function.__name__} ")
+
+        if not path.exists():
+            log.error(f"Cant read file:\t {str(path)} \t during the call of function {function.__name__}. File doesn't exist.")
         return function(path)
     return inner
 
@@ -210,6 +213,8 @@ def load_data(path: Path) -> Simulation:
         preprocessing = SimulationPreprocessing(path / "Preprocessing")
     )
 
+
+@LogFileOpening
 def get_groups(path: Path) -> list[Group]:
     if not path.exists(): 
         raise FileNotFoundError("Missing file " +  str(path))
@@ -231,6 +236,7 @@ def get_groups(path: Path) -> list[Group]:
         else: 
             log.debug("While parsing groups this element ID had no type:'" + get_text_of_a_child(children, "id") + "'. Ignoring this element." )
     return result
+
 
 def parsePropertiesList(propertiesList: ET.Element) -> list[GroupProperty]:
     result: list[GroupProperty] = []
@@ -532,12 +538,19 @@ def load_particle_list(path: Path) -> ParticleList:
     return ParticleList(data=data, time=None, info=info)
 
 
-############### TODO
-
-
-
 def get_number_of_superparticles(path:Path) -> list[NumberOfSuperparticles]:
-    pass
+    result :list[NumberOfSuperparticles] = []
+    for i in (get_files_matching_start_and_end(path, "Number_of_", "SPNB.txt")):
+        result.append(load_number_of_superparticles(i))
+    return result 
+
+def load_number_of_superparticles(path:Path) -> NumberOfSuperparticles:
+    population :str = path.name.replace("Number_of_", "")
+    population = population[:population.find("(_._s)")].strip().strip("_")
+    data = load_time_series(path)
+    return NumberOfSuperparticles(data=data, population=population)
+
+############### TODO
 
 
 def get_default_instruments(path: Path) -> list[DefaultInstrument]:
