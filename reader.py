@@ -195,6 +195,15 @@ class Simulation:
     preprocessing : SimulationPreprocessing
     results : SimulationResults
 
+
+def LogFileOpening[T, **P](function: typing.Callable[[Path], T]) -> typing.Callable[[Path], T]:
+    '''A decorator to add logging to a function that reads a file given a path.'''
+    def inner(path: Path) -> T:
+        log.debug(f"Reading file:\t {str(path)} \t during the call of function {function.__name__} ")
+        return function(path)
+    return inner
+
+
 def load_data(path: Path) -> Simulation:
     return Simulation(
         results = SimulationResults(path / "Simulations" / "Run1" ),
@@ -241,6 +250,7 @@ def get_user_instruments(path: Path) -> list[UserInstrument]:
         result.append(get_user_instrument(file_path))
     return result
 
+@LogFileOpening
 def get_user_instrument(file_path:Path) -> UserInstrument:
     tree_root :ET.Element = ET.parse(file_path).getroot()
     params = dictionary_from_list_in_xml_node(tree_root)
@@ -354,7 +364,7 @@ def ordered_list_of_meshes(path:Path, start_of_file_name:str, end_of_file_name:s
     result.sort(key=lambda mesh: (mesh.time is None, mesh.time))
     return result
 
-
+@LogFileOpening
 def load_mesh(path:Path) -> Mesh:
     """Loads mesh from path, does not guarantee that time will not be None
     """
@@ -388,7 +398,7 @@ def ordered_list_of_Moments(path:Path, start_of_file_name:str, end_of_file_name:
     result.sort(key=lambda moments: (moments.time is None, moments.time))
     return result
 
-
+@LogFileOpening
 def load_moments(path: Path) -> Moments:
     def string_to_vec(string : str) -> list[float]:
         return [float(i) for i in string.split(", ")]
@@ -427,17 +437,17 @@ def ordered_list_of_distribution1D(path:Path, start_of_file_name:str, end_of_fil
     result.sort(key=lambda distribution: (distribution.time is None, distribution.time))
     return result
 
-
+@LogFileOpening
 def load_distribution1d(path: Path) -> Distribution1D:
     data: pandas.DataFrame = pandas.read_csv(path, sep='\t| ', engine='python') #type: ignore
     return Distribution1D(data=data, time=None)
 
-
+@LogFileOpening
 def load_time_series(path:Path) -> TimeSeries:
     data: pandas.DataFrame = pandas.read_csv(path, sep=', ', engine='python') #type: ignore
     return TimeSeries(data=data)
 
-
+@LogFileOpening
 def load_distribution2d(path: Path) -> Distribution2D:
     # print("reading file", path)
 
@@ -508,6 +518,7 @@ def ordered_list_of_particleLists(path:Path, start_of_file_name:str, end_of_file
     result.sort(key=lambda particleLists: (particleLists.time is None, particleLists.time))
     return result 
 
+@LogFileOpening
 def load_particle_list(path: Path) -> ParticleList:
     with open(path, "r") as file:
         x = file.readline()
@@ -538,7 +549,7 @@ def get_default_instruments(path: Path) -> list[DefaultInstrument]:
 
 
 if __name__=="__main__":
-    log.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=2)
+    log.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=log.INFO)
     log.info("Started loading")
     # groups = get_groups(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Preprocessing\\Groups\\groups.xml"))
     # user_instruments = get_user_instruments(Path("C:\\Users\\matej\\Desktop\\VU\\8\\DefaultProject.spis5\\DefaultStudy\\Simulations\\Run1\\UserInstruments"))
