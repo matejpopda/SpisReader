@@ -15,10 +15,11 @@ import sparse
 import numpy.typing
 
 
+@dataclass(kw_only=True)
 class DefaultInstrument:
     """Class encapsulating a single instrument"""
-    def __init__(self) -> None:
-        pass
+    name :str
+    params: dict[str, str|int|float|bool]
 
 @dataclass(kw_only=True)
 class UserInstrument:
@@ -186,15 +187,11 @@ class ParticleList:
     data: pandas.DataFrame
     info: str
 
-
-
-
 @dataclass(kw_only=True)
 class Simulation:
     """Wrapper for preprocessing information and results"""
     preprocessing : SimulationPreprocessing
     results : SimulationResults
-
 
 def LogFileOpening[T](function: typing.Callable[[Path], T]) -> typing.Callable[[Path], T]:
     '''A decorator to add logging to a function that reads a file given a path. Furthermore it checks if a file exist.'''
@@ -267,6 +264,14 @@ def get_user_instrument(file_path:Path) -> UserInstrument:
         id=get_text_of_a_child(tree_root, "id"),
         params=params,
     )
+
+def get_default_instruments(path: Path) -> list[DefaultInstrument]:
+    result: list[DefaultInstrument] = []
+    for i in path.glob("*.xml"):
+        x = get_user_instrument(i)
+        result.append(DefaultInstrument(name=x.name, params=x.params))
+    return  result
+
 
 def get_text_of_a_child(element:ET.Element, tag:str) -> str:
     # This function mainly exists for the type checker
@@ -550,14 +555,6 @@ def load_number_of_superparticles(path:Path) -> NumberOfSuperparticles:
     data = load_time_series(path)
     return NumberOfSuperparticles(data=data, population=population)
 
-############### TODO
-
-
-def get_default_instruments(path: Path) -> list[DefaultInstrument]:
-    # print(path.exists())
-    # for instrument in path.glob("*"):
-    #     print(instrument)
-    return None     # type: ignore 
 
 
 
