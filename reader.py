@@ -11,6 +11,8 @@ import pickle
 import pandas
 import numpy as np
 import xarray
+import sparse
+import numpy.typing
 
 
 class DefaultInstrument:
@@ -177,6 +179,13 @@ class Distribution1D:
 class Moments:
     time: float|None
     data : dict[str, float|list[float]]
+
+@dataclass(kw_only=True)
+class ParticleList:
+    time: float|None
+    data: pandas.DataFrame
+    info: str
+
 
 
 
@@ -379,6 +388,7 @@ def ordered_list_of_Moments(path:Path, start_of_file_name:str, end_of_file_name:
     result.sort(key=lambda moments: (moments.time is None, moments.time))
     return result
 
+
 def load_moments(path: Path) -> Moments:
     def string_to_vec(string : str) -> list[float]:
         return [float(i) for i in string.split(", ")]
@@ -417,15 +427,16 @@ def ordered_list_of_distribution1D(path:Path, start_of_file_name:str, end_of_fil
     result.sort(key=lambda distribution: (distribution.time is None, distribution.time))
     return result
 
+
 def load_distribution1d(path: Path) -> Distribution1D:
     data: pandas.DataFrame = pandas.read_csv(path, sep='\t| ', engine='python') #type: ignore
     return Distribution1D(data=data, time=None)
 
 
-
 def load_time_series(path:Path) -> TimeSeries:
     data: pandas.DataFrame = pandas.read_csv(path, sep=', ', engine='python') #type: ignore
     return TimeSeries(data=data)
+
 
 def load_distribution2d(path: Path) -> Distribution2D:
     # print("reading file", path)
@@ -453,6 +464,8 @@ def load_distribution2d(path: Path) -> Distribution2D:
     y_cords: list[float] = []
     z_cords: list[float] = []
 
+    data: numpy.typing.ArrayLike
+
     data = np.zeros((x_size, y_size, z_size))
 
     with open(path, 'r') as file:
@@ -478,20 +491,38 @@ def load_distribution2d(path: Path) -> Distribution2D:
                 data[:,y,z] = x[:]
             file.readline()
 
+    if np.count_nonzero(data)/data.size <= 0.1: # if data is mostly empty we convert it to a sparse matrix
+        data = sparse.COO.from_numpy(data) #type:ignore
 
+    
     result = xarray.DataArray(data=data, dims=dims, coords=coords_dic)
-
     return Distribution2D(time=None, data=result, plotted_function=plotted_function)
 
+def ordered_list_of_particleLists(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[ParticleList]:
+    result :list[ParticleList] = []
+    for i in (get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name)):
+        particleLists = load_particle_list(i)
+        particleLists.time = float(i.name.replace(start_of_file_name, "").replace(end_of_file_name, ""))
+        result.append(particleLists)
+
+    result.sort(key=lambda particleLists: (particleLists.time is None, particleLists.time))
+    return result 
+
+def load_particle_list(path: Path) -> ParticleList:
+    with open(path, "r") as file:
+        x = file.readline()
+        y = file.readline()
+        z = file.readline()
+
+    names = z.strip().strip("#").strip().split(" ")
+    info = x + y + z
+
+    data: pandas.DataFrame = pandas.read_csv(path, sep='\t| ', engine='python', header=None, skiprows=[0,1,2], names=names) #type: ignore
+    return ParticleList(data=data, time=None, info=info)
 
 
 ############### TODO
-class ParticleList:
-    #TODO maybe not needed
-    pass
 
-def ordered_list_of_particleLists(path:Path, start_of_file_name:str, end_of_file_name:str) -> list[ParticleList]:
-    return []
 
 
 def get_number_of_superparticles(path:Path) -> list[NumberOfSuperparticles]:
