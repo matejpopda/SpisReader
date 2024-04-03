@@ -1,8 +1,8 @@
 import spisModule as spis
 import pathlib
-import helpers
-import pyvista
-import pyvista.plotting
+import spisModule.helpers as helpers
+import spisModule.plotters as plotters
+
 
 @helpers.log_function_entry_and_exit
 def main():
@@ -10,7 +10,7 @@ def main():
     # path = pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
     path = pathlib.Path("C:/Users/matej/Desktop/VU/datafromsofie/S03_11.spis5/S03_11")
 
-    result = spis.load_simulation(path, force_raw_processing=True)
+    result = spis.load_simulation(path)
 
     # print(result.results.extracted_data_fields.spacecraft_face.properties)
 
@@ -18,20 +18,16 @@ def main():
     # print(result.results.extracted_data_fields.spacecraft_vertex.properties)
     # print(result.results.extracted_data_fields.volume_vertex.properties)
 
-    print(result.results.extracted_data_fields.spacecraft_face.properties)
+    # print(result.results.extracted_data_fields.spacecraft_face.properties)
 
-    plotter = pyvista.plotting.Plotter()
-    plotter.add_mesh(result.results.extracted_data_fields.spacecraft_face.mesh, 
-                     scalars="gmsh:physical",
-                     )
+    plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_mesh.mesh) 
+    plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_face.mesh)
+    plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_vertex.mesh)
+    plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.volume_vertex.mesh)
 
-    plotter.show()
-    plotter = pyvista.plotting.Plotter()
-    plotter.add_mesh(result.results.extracted_data_fields.spacecraft_face.mesh, 
-                     scalars="Conductance_t=0.0s",
-                     )
 
-    plotter.show()
+    plotters.interactive_plot_mesh(result.results.extracted_data_fields.spacecraft_face.mesh, "Conductance_t=0.0s")
+
 
 
 if __name__=="__main__":
