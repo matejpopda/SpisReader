@@ -2,3 +2,4 @@ meshio
 pyvista
 pandas
 xarray
+netCDF4

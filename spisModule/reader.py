@@ -15,6 +15,7 @@ import sparse
 import numpy.typing
 
 
+
 @dataclass(kw_only=True)
 class DefaultInstrument:
     """Class encapsulating a single instrument"""
@@ -77,10 +78,22 @@ class SimulationResults:
         # \Simulations\Run1\NumKernel\Output
 
         self.monitored_data_fields = None # TODO I think the data can be more easily gotten from numerical kernel
-        # I think the data is split, the .msh file contains what time it was at what timestep, the .nc file contains the data for each timestep
 
-        self.extracted_data_fields = None 
-        
+
+        self.extracted_data_fields:ExtractedDataFields = get_extracted_datafields(path_to_results / "OutputFolder" / "DataFieldExtracted")
+        # \Simulations\Run1\OutputFolder\DataFieldExtracted
+
+
+
+
+@dataclass(kw_only=True)
+class ExtractedDataFields: 
+    spacecraft_vertex : "Mesh"
+    spacecraft_face : "Mesh"
+    volume_vertex : "Mesh"
+    spacecraft_mesh: "Mesh"
+
+
 @dataclass(kw_only=True)
 class NumericalResults:
     surface_potential: "TimeSeries"
@@ -579,3 +592,74 @@ def load_pickle(path:Path) -> Simulation:
     assert isinstance(deserialized_object, Simulation)
     return deserialized_object
 
+
+def get_extracted_datafields(path:Path) -> ExtractedDataFields:
+
+    spacecraft_face = load_mesh(path / "Spacecraft_FACE.msh")
+    spacecraft_vertex = load_mesh(path / "Spacecraft_VERTEX.msh")
+    volume_vertex = load_mesh(path / "Volume_VERTEX.msh")
+    spacecraft_mesh = load_mesh(path / "../../../../Preprocessing/Mesh/GeometricalSystem/C06_cube_wSC_single.msh")
+    
+    all_datasets: list[Path] = []
+
+    for i in path.glob("*.nc"):
+
+        # Following 5 lines filter out time series and masks
+        if any(banned_str in i.name for banned_str in ["VERTEX", "POLYHEDRON", "FACE"]): 
+            continue
+        if "time" in i.name:
+            continue
+        all_datasets.append(i)
+
+    # all_datasets contain all paths that can be added to a mesh after running through a MASK 
+
+    for i in all_datasets:
+        data = xarray.open_dataset(i)
+        mask = xarray.open_dataset(i / ".." / data.attrs["meshMaskURI"])
+        mesh: Mesh
+
+        if "DisplayVolMesh" in mask.attrs["meshURI"]:  # same mesh file
+            mask.attrs["meshURI"] = "Spacecraft_VERTEX.msh"
+
+        match mask.attrs["meshURI"]: 
+            case "Spacecraft_FACE.msh":
+                mesh = spacecraft_face
+            case "Spacecraft_VERTEX.msh":
+                mesh = spacecraft_vertex
+            case "Volume_VERTEX.msh":
+                mesh = volume_vertex 
+            case  "../../../../Preprocessing/Mesh/GeometricalSystem/C06_cube_wSC_single.msh":
+                mesh = spacecraft_mesh
+            case x: # If the mesh isnt one the 4 types we skip the data
+                log.error("Trying to add data to an unknown mesh, skipping")
+                log.error("The mesh name is " + str(x))
+                continue
+
+        # TODO: not using Masks we just check if the mask is an identity
+        check_mask_is_identity(mask, data.attrs["meshMaskURI"])
+
+
+        # https://stackoverflow.com/questions/74693202/add-point-data-to-mesh-and-save-as-vtu
+        for _, da in data.data_vars.items():
+            try:
+                mesh.mesh.point_data[i.stem] = da.data
+                log.info("Loaded " + i.stem)
+            except Exception as e: # TODO: FIX THIS?
+                log.warn("Failed on " + i.stem)
+                log.warn(str(mask.attrs["meshURI"]))
+                log.warn(e)
+                continue
+
+    return ExtractedDataFields(spacecraft_face=spacecraft_face,
+                               spacecraft_vertex=spacecraft_vertex,
+                               volume_vertex=volume_vertex,
+                               spacecraft_mesh=spacecraft_mesh)
+
+
+
+def check_mask_is_identity(dataset: xarray.Dataset, mask_name:str):
+    for i, j  in enumerate(dataset["nbMeshElement"].data):
+        if i != j:
+            log.error("Mask isn't an identity, attributes using it are wrong")
+            log.error("The mask is" + mask_name)
+            return
