@@ -6,18 +6,21 @@ import sys
 
 if __name__=="__main__":
     log.basicConfig(format='%(asctime)s - %(levelname)s - %(filename)s -  %(message)s', 
-                    level=log.INFO, 
+                    level=log.DEBUG, 
                     filename="latest_run.log",
                     filemode='w')
     handler = log.StreamHandler(sys.stdout)
     log.getLogger().addHandler(handler)
-    handler.setLevel(log.ERROR)
+    handler.setLevel(log.INFO)
+    handler.setFormatter(log.Formatter(fmt = '%(asctime)s - %(levelname)s - %(filename)s -  %(message)s'))
+
+    log.info("Program started")
 
     path = pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
 
-    spis.reader.get_extracted_datafields(path / "Simulations/Run1/OutputFolder/DataFieldExtracted")
 
-    # exit()
+    spis.reader.get_extracted_datafields(path / "Simulations/Run1/OutputFolder/DataFieldExtracted")
+    exit()
 
 
 

@@ -601,22 +601,28 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
     spacecraft_mesh = load_mesh(path / "../../../../Preprocessing/Mesh/GeometricalSystem/C06_cube_wSC_single.msh")
     
     all_datasets: list[Path] = []
+    time_series: list[Path] = []
 
     for i in path.glob("*.nc"):
 
-        # Following 5 lines filter out time series and masks
-        if any(banned_str in i.name for banned_str in ["VERTEX", "POLYHEDRON", "FACE"]): 
-            continue
+        # Following lines filter out time series and masks
         if "time" in i.name:
+            time_series.append(i)
+            continue
+        if any(banned_str in i.name for banned_str in ["VERTEX", "POLYHEDRON", "FACE"]): 
             continue
         all_datasets.append(i)
 
     # all_datasets contain all paths that can be added to a mesh after running through a MASK 
+    # We assume that mask is an identity, so it is not implemented for now
 
     for i in all_datasets:
-        data = xarray.open_dataset(i)
-        mask = xarray.open_dataset(i / ".." / data.attrs["meshMaskURI"])
+        data : xarray.Dataset = xarray.open_dataset(i) # type: ignore
+        mask : xarray.Dataset = xarray.open_dataset(i / ".." / data.attrs["meshMaskURI"]) # type: ignore
         mesh: Mesh
+
+        # TODO: not using Masks we just check if the mask is an identity
+        check_mask_is_identity(mask, data.attrs["meshMaskURI"])
 
         if "DisplayVolMesh" in mask.attrs["meshURI"]:  # same mesh file
             mask.attrs["meshURI"] = "Spacecraft_VERTEX.msh"
@@ -635,19 +641,22 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
                 log.error("The mesh name is " + str(x))
                 continue
 
-        # TODO: not using Masks we just check if the mask is an identity
-        check_mask_is_identity(mask, data.attrs["meshMaskURI"])
-
-
         # https://stackoverflow.com/questions/74693202/add-point-data-to-mesh-and-save-as-vtu
         for _, da in data.data_vars.items():
             try:
-                mesh.mesh.point_data[i.stem] = da.data
-                log.info("Loaded " + i.stem)
-            except Exception as e: # TODO: FIX THIS?
-                log.warn("Failed on " + i.stem)
-                log.warn(str(mask.attrs["meshURI"]))
-                log.warn(e)
+                data = da.data
+                if len(data) == mesh.mesh.number_of_points:
+                    mesh.mesh.point_data[i.stem] = da.data
+                elif len(data) == mesh.mesh.number_of_cells:
+                    mesh.mesh.cell_data[i.stem] = da.data
+                # this could be added, but its not needed for now
+                # elif len(data) == 
+                #     mesh.mesh.field_data[i.stem] = da.data   
+                log.debug("Loaded " + i.stem)
+            except Exception as e:
+                log.warn("Failed on " + i.stem + " this data won't be available")
+                log.debug("Was using the mask " + str(mask.attrs["meshURI"]))
+                log.debug(type(e).__name__ ,e)
                 continue
 
     return ExtractedDataFields(spacecraft_face=spacecraft_face,
