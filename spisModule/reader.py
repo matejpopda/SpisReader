@@ -598,7 +598,10 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
     spacecraft_face = load_mesh(path / "Spacecraft_FACE.msh")
     spacecraft_vertex = load_mesh(path / "Spacecraft_VERTEX.msh")
     volume_vertex = load_mesh(path / "Volume_VERTEX.msh")
-    spacecraft_mesh = load_mesh(path / "../../../../Preprocessing/Mesh/GeometricalSystem/C06_cube_wSC_single.msh")
+
+    spacecraft_mesh_file = list((path / "../../../../Preprocessing/Mesh/GeometricalSystem").glob("*.msh"))[0]
+    spacecraft_mesh_name = spacecraft_mesh_file.name
+    spacecraft_mesh = load_mesh(spacecraft_mesh_file)
     
     all_datasets: list[Path] = []
     time_series: list[Path] = [] # We are not doing anything with this, for now
@@ -627,19 +630,18 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
         if "DisplayVolMesh" in mask.attrs["meshURI"]:  # same mesh file
             mask.attrs["meshURI"] = "Spacecraft_VERTEX.msh"
 
-        match mask.attrs["meshURI"]: 
-            case "Spacecraft_FACE.msh":
-                mesh = spacecraft_face
-            case "Spacecraft_VERTEX.msh":
-                mesh = spacecraft_vertex
-            case "Volume_VERTEX.msh":
-                mesh = volume_vertex 
-            case  "../../../../Preprocessing/Mesh/GeometricalSystem/C06_cube_wSC_single.msh":
-                mesh = spacecraft_mesh
-            case x: # If the mesh isnt one the 4 types we skip the data
-                log.error("Trying to add data to an unknown mesh, skipping")
-                log.error("The mesh name is " + str(x))
-                continue
+        if mask.attrs["meshURI"] == "Spacecraft_FACE.msh":
+            mesh = spacecraft_face
+        elif mask.attrs["meshURI"] == "Spacecraft_VERTEX.msh":
+            mesh = spacecraft_vertex
+        elif mask.attrs["meshURI"] ==  "Volume_VERTEX.msh":
+            mesh = volume_vertex 
+        elif mask.attrs["meshURI"] ==  ("../../../../Preprocessing/Mesh/GeometricalSystem/" + str(spacecraft_mesh_name)):
+            mesh = spacecraft_mesh
+        else: # If the mesh isnt one the 4 types we skip the data
+            log.error("Trying to add data to an unknown mesh, skipping")
+            log.error("The mesh name is " + str(mask.attrs["meshURI"]))
+            continue
 
         # https://stackoverflow.com/questions/74693202/add-point-data-to-mesh-and-save-as-vtu
         for _, da in data.data_vars.items():

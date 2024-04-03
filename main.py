@@ -7,10 +7,10 @@ import pyvista.plotting
 @helpers.log_function_entry_and_exit
 def main():
     
-    path = pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
-    # path = pathlib.Path("C:/Users/matej/Desktop/VU/datafromsofie/S03_11.spis5/S03_11")
+    # path = pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
+    path = pathlib.Path("C:/Users/matej/Desktop/VU/datafromsofie/S03_11.spis5/S03_11")
 
-    result = spis.load_simulation(path)
+    result = spis.load_simulation(path, force_raw_processing=True)
 
     # print(result.results.extracted_data_fields.spacecraft_face.properties)
 
