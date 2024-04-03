@@ -1,26 +1,37 @@
 import spisModule as spis
 import pathlib
 import helpers
-
+import pyvista
+import pyvista.plotting
 
 @helpers.log_function_entry_and_exit
 def main():
     
     path = pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
+    # path = pathlib.Path("C:/Users/matej/Desktop/VU/datafromsofie/S03_11.spis5/S03_11")
 
-    spis.save_as_pickle(spis.load_from_SPIS(path), path /'processed_simulation.pkl')
+    result = spis.load_simulation(path)
 
-    result = spis.load_pickle(path /'processed_simulation.pkl')
+    # print(result.results.extracted_data_fields.spacecraft_face.properties)
+
+    # print(result.results.extracted_data_fields.spacecraft_mesh.properties)
+    # print(result.results.extracted_data_fields.spacecraft_vertex.properties)
+    # print(result.results.extracted_data_fields.volume_vertex.properties)
 
     print(result.results.extracted_data_fields.spacecraft_face.properties)
 
-    print(result.results.extracted_data_fields.spacecraft_mesh.properties)
-    print(result.results.extracted_data_fields.spacecraft_vertex.properties)
-    print(result.results.extracted_data_fields.volume_vertex.properties)
+    plotter = pyvista.plotting.Plotter()
+    plotter.add_mesh(result.results.extracted_data_fields.spacecraft_face.mesh, 
+                     scalars="gmsh:physical",
+                     )
 
+    plotter.show()
+    plotter = pyvista.plotting.Plotter()
+    plotter.add_mesh(result.results.extracted_data_fields.spacecraft_face.mesh, 
+                     scalars="Conductance_t=0.0s",
+                     )
 
-
-
+    plotter.show()
 
 
 if __name__=="__main__":

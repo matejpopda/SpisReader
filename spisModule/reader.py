@@ -667,9 +667,22 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
 
 
 
+
 def check_mask_is_identity(dataset: xarray.Dataset, mask_name:str):
     for i, j  in enumerate(dataset["nbMeshElement"].data):
         if i != j:
             log.error("Mask isn't an identity, attributes using it are wrong")
             log.error("The mask is" + mask_name)
             return
+        
+
+
+
+def load_simulation(path: Path, *, processed_name:str="processed_simulation.pkl", force_raw_processing:bool = False) -> Simulation:
+    if  force_raw_processing or not (path/processed_name).exists():
+        save_as_pickle(load_from_SPIS(path), path /processed_name)
+
+    result = load_pickle(path /processed_name)
+
+    return result
+
