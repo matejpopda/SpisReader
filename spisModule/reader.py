@@ -601,7 +601,7 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
     spacecraft_mesh = load_mesh(path / "../../../../Preprocessing/Mesh/GeometricalSystem/C06_cube_wSC_single.msh")
     
     all_datasets: list[Path] = []
-    time_series: list[Path] = []
+    time_series: list[Path] = [] # We are not doing anything with this, for now
 
     for i in path.glob("*.nc"):
 
@@ -649,9 +649,10 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
                     mesh.mesh.point_data[i.stem] = da.data
                 elif len(data) == mesh.mesh.number_of_cells:
                     mesh.mesh.cell_data[i.stem] = da.data
-                # this could be added, but its not needed for now
-                # elif len(data) == 
-                #     mesh.mesh.field_data[i.stem] = da.data   
+                # this last option shouldn't run
+                else: 
+                    mesh.mesh.field_data[i.stem] = da.data  
+                mesh.properties.append(i.stem) 
                 log.debug("Loaded " + i.stem)
             except Exception as e:
                 log.warn("Failed on " + i.stem + " this data won't be available")
