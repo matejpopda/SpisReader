@@ -4,27 +4,45 @@ import pyvista
 import pyvista.core.dataset
 import pandas
 import xarray
-# from spisModule.reader import get_user_instruments, get_default_instruments, get_extracted_datafields, get_numerical_kernel_output,get_groups, load_mesh, dictionary_from_list_in_xml_node
 
 log = logging.getLogger(__name__)
 
 
 @dataclass(kw_only=True)
 class DefaultInstrument:
-    """Class encapsulating a single instrument"""
+    """Class encapsulating a single instrument
+    
+    Attributes:
+        name (str): name of the instrument
+        params (dict): parameters of the instrument
+    """
     name :str
     params: dict[str, str|int|float|bool]
 
 @dataclass(kw_only=True)
 class UserInstrument:
-    """Class encapsulating a single instrument"""
+    """Class encapsulating a single user instrument
+    
+    Attributes: 
+        name (str): name of the user instrument
+        id (str): id of the user instrument
+        params (dict): paramaters of the user instrument
+    """
     name :str
     id: str
     params: dict[str, str|int|float|bool]
 
 @dataclass(kw_only=True)
 class Group:
-    """Class encapsulating a single physical group"""
+    """Class encapsulating a single physical group
+    
+    Attributes:
+        name (str): name of the group
+        SPISid (str): id of the group in SPIS
+        GMSHid (str): id of the group in GMSH (should be the physical group)
+        type (str): type of the group
+        properties (list[GroupProperty]): properties of the group
+    """
     name:str 
     SPISid:str 
     GMSHid:str 
@@ -33,35 +51,43 @@ class Group:
 
 @dataclass(kw_only=True)
 class GroupProperty:
-    """Class encapsulating group properties"""
+    """Class encapsulating group properties
+    
+    Attributes:
+        name (str): name of the property
+        id (str): id of the property
+        description(str): description of the property
+    """
     name:str
     id:str
     description:str
 
 @dataclass(kw_only=True)
 class SimulationPreprocessing:
-    """Data from preprocessing is stored here"""
+    """ Class encapsulating data from the preprocessing folder
+
+    Attributes:
+        model (Mesh): Contains the mesh from Preprocessing/Mesh/GeometricalSystem/*.msh, this file contains the base model of the spacecraft
+        groups (list[Group]): Contains data from Preprocessing/Groups/groups.xml, this file contains information about declared groups in the simulation
+        electrical_circuit (str): Contains the copy of the Preprocessing/ElectricalCircuit/circuit.txt file
+    """
     model: "Mesh"
     groups: list[Group]
     electrical_circuit : str
 
-    # def __init__(self, path_to_preprocessing: Path) -> None:
-    #     model_path : list[Path] = list((path_to_preprocessing / "Mesh" / "GeometricalSystem").glob("*"))
-    #     assert len(model_path) == 1
-    #     self.model: Mesh = load_mesh(model_path[0]) 
-    #     # Loads file Preprocessing/Mesh/GeometricalSystem/*.msh 
-    #     # Probably can be the same class
-
-    #     self.groups: list[Group] = get_groups(path_to_preprocessing / "Groups" / "groups.xml") 
-    #     # \Preprocessing\Groups/groups.xml
-
-    #     self.electrical_circuit : str = (path_to_preprocessing / "ElectricalCircuit" / "circuit.txt").read_text() 
-    #     # \Preprocessing\ElectricalCircuit\circuit.txt
-
-
 @dataclass(kw_only=True)
 class SimulationResults:
-    """Results of a simulation (and variables that change per simulation, such as instruments are stored here)"""
+    """Results of a simulation (and variables that change per simulation, such as instruments are stored here)
+    
+    Attributes:
+        default_instruments (list[DefaultInstrument]): Contains all default instruments, e.g. /Simulations/Run1/DefaultInstruments 
+        user_instruments (list[UserInstrument]): Contains all user instruments, e.g. /Simulations/Run1/UserInstruments 
+        global_parameters (dict[str, str|int|float|bool]): Contains global parameters, e.g. /Simulations/Run1/Global Parameters 
+        numerical_kernel_output (NumericalResults): Contains output from the numerical kernel, e.g. /Simulations/Run1/NumKernel/Output 
+        monitored_data_fields (None): Is empty for now, in the future it might contain  /Simulations/Run1/OutputFolder/DataFieldMonitored
+        extracted_data_fields (ExtractedDataFields): Contains extracted datafields, e.g. /Simulations/Run1/OutputFolder/DataFieldExtracted
+    
+    """
     default_instruments : list[DefaultInstrument]
     user_instruments : list[UserInstrument]
     global_parameters : dict[str, str|int|float|bool]
@@ -69,31 +95,11 @@ class SimulationResults:
     monitored_data_fields : None
     extracted_data_fields : "ExtractedDataFields"
 
-    # def __init__(self, path_to_results: Path) -> None:
-    #     self.default_instruments : list[DefaultInstrument] = get_default_instruments(path_to_results / "DefaultInstruments")
-    #     # List of instruments from \Simulations\Run1\DefaultInstruments
-
-    #     self.user_instruments : list[UserInstrument] = get_user_instruments(path_to_results / "UserInstruments") 
-    #     # List of instruments from \Simulations\Run1\UserInstruments
-
-
-    #     self.global_parameters = dictionary_from_list_in_xml_node(ET.parse(path_to_results / "GlobalParameters" / "globalParameters.xml").getroot()) 
-    #     # \Simulations\Run1\GlobalParameters
-
-    #     self.numerical_kernel_output : NumericalResults = get_numerical_kernel_output(path_to_results / "NumKernel" / "Output", self.user_instruments) 
-    #     # \Simulations\Run1\NumKernel\Output
-
-    #     self.monitored_data_fields = None # TODO I think the data can be more easily gotten from numerical kernel
-
-
-    #     self.extracted_data_fields:ExtractedDataFields = get_extracted_datafields(path_to_results / "OutputFolder" / "DataFieldExtracted")
-    #     # \Simulations\Run1\OutputFolder\DataFieldExtracted
-
-
-
 
 @dataclass(kw_only=True)
 class ExtractedDataFields: 
+    """Contains all the mesh information obtained from the extracted data fields folder on 4 different meshes
+    """
     spacecraft_vertex : "Mesh"
     spacecraft_face : "Mesh"
     volume_vertex : "Mesh"
@@ -102,28 +108,29 @@ class ExtractedDataFields:
 
 @dataclass(kw_only=True)
 class NumericalResults:
+    """Encapsulates data from the numerical kernel"""
     surface_potential: "TimeSeries"
-    # \Average_surface_potential_of_nod
+    """Average_surface_potential_of_node"""
     collected_currents: "TimeSeries"
-    # \collectedCurrents.txt
+    """collectedCurrents.txt"""
 
     emitted_currents: "TimeSeries"
-    # \emittedCurrents.txt
+    """emittedCurrents.txt"""
 
     number_of_superparticles :list["NumberOfSuperparticles"]
-    #  \Number_of_*.txt
+    """Number_of_*.txt"""
 
     particle_detectors : list["ParticleDetector"]
-    # \ParticleDetector[number]_[population]_*
+    """ParticleDetector[number]_[population]_*"""
 
     time_steps: "TimeSeries"
-    # \Simulation_Control_-_time_steps*.txt
+    """Simulation_Control_-_time_steps*.txt"""
     
     spis_log :str
-    # \SpisNum.log
+    """SpisNum.log"""
     
     total_current: "TimeSeries"
-    # \Total_current_on_spacecraft_surface*.txt
+    """Total_current_on_spacecraft_surface*.txt"""
 
 @dataclass(kw_only=True)
 class NumberOfSuperparticles:
@@ -132,84 +139,101 @@ class NumberOfSuperparticles:
 
 @dataclass(kw_only=True)
 class ParticleDetector:
+    """Class encapsulating a particle detector"""
     name :str
+    """Name of the particle detector"""
     population :str
+    """The type of population the particle detector measures"""
 
     differential_flux_2d :list["Distribution2D"]
-    #\[name]_2D_DifferentialFlux_at_t=*s.txt
+    """[name]_2D_DifferentialFlux_at_t=*s.txt"""
 
     differential_flux_mesh :list["Mesh"]
-    #\[name]_3V_Differential_Flux_at_t=*s.msh
+    """[name]_3V_Differential_Flux_at_t=*s.msh"""
 
     distribution_function_mesh :list["Mesh"]
-    #\[name]_3V_Distribution_Function_at_t=*s.msh
+    """[name]_3V_Distribution_Function_at_t=*s.msh"""
 
     initial_distribution_mesh :list["Mesh"]
-    #\[name]_3V_Initial_Distribution_Function_at_t=*s.msh
+    """[name]_3V_Initial_Distribution_Function_at_t=*s.msh"""
 
     angular2d_differential_flux :list["Distribution2D"]
-    #\[name]_Angular2D_DifferentialFlux_at_t=*s.txt
+    """[name]_Angular2D_DifferentialFlux_at_t=*s.txt"""
 
     angular2d_function :list["Distribution2D"]
-    #\[name]_Angular2DF_at_t=*s.txt
+    """[name]_Angular2DF_at_t=*s.txt"""
 
     computationalOctree : list["Mesh"]
-    #\[name]_computationalOctree_Time*s.msh
+    """[name]_computationalOctree_Time*s.msh"""
 
     differential_flux_and_energy_df : list["Distribution1D"]
-    #\[name]_Differential_Flux_and_Energy_DF_at_t=*s.txt
+    """[name]_Differential_Flux_and_Energy_DF_at_t=*s.txt"""
 
     initial_angular2df : list["Distribution2D"]
-    #\[name]_Initial_Angular2DF_at_t=*s.txt
+    """[name]_Initial_Angular2DF_at_t=*s.txt"""
 
     initial_velocity_2df : list["Distribution2D"]
-    #\[name]_Initial_Velocity2DF_at_t=*s.txt
+    """[name]_Initial_Velocity2DF_at_t=*s.txt"""
 
     moment : list["Moments"]
-    #\[name]_Moment_at_*s.txt
+    """[name]_Moment_at_*s.txt"""
 
     particle_list : list["ParticleList"]
-    #\[name]_Particle_List_at_*s.txt
+    """[name]_Particle_List_at_*s.txt"""
 
     velocity_2df : list["Distribution2D"] 
-    #\[name]_Velocity2DF_at_t=*s.txt
+    """[name]_Velocity2DF_at_t=*s.txt"""
 
 
 @dataclass(kw_only=True)
 class Mesh:
+    """Class encapsulating a plottable mesh with functions from plotters.py
+    """
     mesh:pyvista.core.pointset.UnstructuredGrid
     time: float|None
+    """In case there is multiple meshes made at different times, this parameter can be used to for example sort them"""
     properties: list[str]
+    """List of plottable properties on the mesh"""
 
 @dataclass(kw_only=True)
 class TimeSeries:
+    """Simple class encapsulating a time series"""
     data: pandas.DataFrame
 
 @dataclass(kw_only=True)
 class Distribution2D:
+    """Class encapsulating 2D distribution"""
     time: float|None
+    """At what time was the distribution saved"""
     data : xarray.DataArray
+    """DataArray with named coordinates, the array can sometimes be sparse"""
     plotted_function : str
+    """What function is being plotted"""
 
 @dataclass(kw_only=True)
 class Distribution1D:
+    """Class encapsulating 1D distribution"""
     time: float|None
+    """At what time was the distribution saved"""
     data: pandas.DataFrame
 
 @dataclass(kw_only=True)
 class Moments:
+    """Class encapsulating the moments file, contains some information about the moments"""
     time: float|None
+    """At what time was this output saved"""
     data : dict[str, float|list[float]]
 
 @dataclass(kw_only=True)
 class ParticleList:
+    """Class encapsulating particle lists"""
     time: float|None
     data: pandas.DataFrame
     info: str
 
 @dataclass(kw_only=True)
 class Simulation:
-    """Wrapper for preprocessing information and results"""
+    """Class encapsulating the whole simulation output from SPIS"""
     preprocessing : SimulationPreprocessing
     results : SimulationResults
 
@@ -217,5 +241,3 @@ class Simulation:
     def extracted_data_fields(self):
         return self.results.extracted_data_fields
     
-    # def get_data_field_property(self, property: str) -> Mesh:
-        
