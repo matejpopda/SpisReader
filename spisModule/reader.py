@@ -207,6 +207,10 @@ class Simulation:
     preprocessing : SimulationPreprocessing
     results : SimulationResults
 
+    @property
+    def extracted_datafields(self):
+        return self.results.extracted_data_fields
+
 def LogFileOpening[T](function: typing.Callable[[Path], T]) -> typing.Callable[[Path], T]:
     '''A decorator to add logging to a function that reads a file given a path. Furthermore it checks if a file exist.'''
     def inner(path: Path) -> T:
