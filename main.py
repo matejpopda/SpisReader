@@ -16,17 +16,17 @@ def main():
 
     # print(result.results.extracted_data_fields.spacecraft_mesh.properties)
     # print(result.results.extracted_data_fields.spacecraft_vertex.properties)
-    print(result.results.extracted_data_fields.volume_vertex.properties)
+    # print(result.extracted_data_fields.volume_vertex.properties)
 
     # print(result.results.extracted_data_fields.spacecraft_face.properties)
 
-    # plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_mesh.mesh) 
+    plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_mesh) 
     # plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_face.mesh)
     # plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_vertex.mesh)
     # plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.volume_vertex.mesh)
 
 
-    plotters.save_mesh(result.results.extracted_data_fields.spacecraft_face, "Conductance_t=0.0s")
+    plotters.save_mesh(result.extracted_data_fields.spacecraft_face, "Conductance_t=0.0s")
 
     # plotters.interactive_plot_orth_slice(result.results.extracted_data_fields.volume_vertex, "final_elec1_charge_density_-_step0")
 
