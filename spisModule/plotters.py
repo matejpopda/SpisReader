@@ -5,7 +5,7 @@ import pyvista.core as pvc
 import spisModule.reader as reader
 from typing import Callable
 from pyvista.core.dataset import DataSet
-
+import logging as log
 
 # For Mesh
     # Slice - takes origin and normal, and mesh
@@ -56,6 +56,10 @@ def interactive_plot_mesh(mesh: DataSet|reader.Mesh, property:str) -> None:
 def save_mesh(mesh: DataSet|reader.Mesh, property:str, path:Path = Path("./temp"), filename:str|None=None) -> None:
     if isinstance(mesh, reader.Mesh):
         mesh = mesh.mesh
+
+    if not path.exists(): 
+        log.info(f"Output folder {str(path.resolve())} does not exist, creating it")
+        path.mkdir()   
 
     if filename is None:
         filename = property + ".png"
