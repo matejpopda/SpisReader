@@ -1,6 +1,6 @@
 from pathlib import Path
 import xml.etree.ElementTree as ET
-import logging as log
+import logging
 from dataclasses import dataclass
 import typing
 import meshio
@@ -13,7 +13,9 @@ import numpy as np
 import xarray
 import sparse
 import numpy.typing
+from spisModule.helpers import LogFileOpening
 
+log = logging.getLogger(__name__)
 
 
 @dataclass(kw_only=True)
@@ -208,18 +210,33 @@ class Simulation:
     results : SimulationResults
 
     @property
-    def extracted_datafields(self):
+    def extracted_data_fields(self):
         return self.results.extracted_data_fields
+    
+    # def get_data_field_property(self, property: str) -> Mesh:
+        
 
-def LogFileOpening[T](function: typing.Callable[[Path], T]) -> typing.Callable[[Path], T]:
-    '''A decorator to add logging to a function that reads a file given a path. Furthermore it checks if a file exist.'''
-    def inner(path: Path) -> T:
-        log.debug(f"Reading file:\t {str(path)} \t during the call of function {function.__name__} ")
 
-        if not path.exists():
-            log.error(f"Cant read file:\t {str(path)} \t during the call of function {function.__name__}. File doesn't exist.")
-        return function(path)
-    return inner
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def load_data(path: Path) -> Simulation:

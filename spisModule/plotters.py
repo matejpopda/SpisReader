@@ -1,11 +1,11 @@
-from spisModule.reader import Simulation
+
 from pathlib import Path
 import pyvista.plotting
-import pyvista.core as pvc
 import spisModule.reader as reader
-from typing import Callable
 from pyvista.core.dataset import DataSet
-import logging as log
+import logging 
+log = logging.getLogger(__name__)
+
 
 # For Mesh
     # Slice - takes origin and normal, and mesh
@@ -58,7 +58,7 @@ def save_mesh(mesh: DataSet|reader.Mesh, property:str, path:Path = Path("./temp"
         mesh = mesh.mesh
 
     if not path.exists(): 
-        log.info(f"Output folder {str(path.resolve())} does not exist, creating it")
+        log.warn(f"Output folder {str(path.resolve())} does not exist, creating it")
         path.mkdir()   
 
     if filename is None:
@@ -69,3 +69,6 @@ def save_mesh(mesh: DataSet|reader.Mesh, property:str, path:Path = Path("./temp"
     plotter = pyvista.plotting.Plotter(off_screen=True) # type: ignore
     plotter.add_mesh(mesh, scalars=property)  # type: ignore
     plotter.screenshot(filename=path)     # type: ignore
+
+
+
