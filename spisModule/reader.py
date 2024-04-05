@@ -30,7 +30,6 @@ def get_simulation_preprocessing(path_to_preprocessing: Path) -> SimulationPrepr
     assert len(model_path) == 1
     model: Mesh = load_mesh(model_path[0]) 
     # Loads file Preprocessing/Mesh/GeometricalSystem/*.msh 
-    # Probably can be the same class
 
     groups: list[Group] = get_groups(path_to_preprocessing / "Groups" / "groups.xml") 
     # \Preprocessing\Groups/groups.xml
@@ -432,7 +431,7 @@ def save_as_pickle(simulation: Simulation, path: Path):
         f.write(serialized_data)
     log.info("Saved the data to " + str(path))
 
-
+@LogFileOpening
 def load_pickle(path:Path) -> Simulation:
     with open(path, 'rb') as f:
         deserialized_object = pickle.load(f)    
