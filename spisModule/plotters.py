@@ -1,12 +1,16 @@
 
 from pathlib import Path
 import pyvista.plotting
-import spisModule.reader as reader
+from pyvista.plotting.plotter import Plotter
+from pyvista.core.dataset import DataSet
 import spisModule.simulation as simulation
 import pyvista.core.dataset
+from spisModule.helpers import allow_mesh, check_and_create_folder
 import logging 
 log = logging.getLogger(__name__)
 
+
+SCREENSHOT_SIZE = 2 
 
 # For Mesh
     # Slice - takes origin and normal, and mesh
@@ -42,65 +46,74 @@ class PlaneNormals:
     YZ_flipped = (-1,0,0)
 
 
-
-dataset = pyvista.core.dataset.DataSet|simulation.Mesh
 vector = Directions|PlaneNormals|tuple[float, float, float]|tuple[int, int, int]
 
 
 
-def interactive_plot_orth_slice(mesh: dataset, property:str) -> None:
-    interactive_plot_mesh(mesh.slice_orthogonal(), property=property) # type: ignore
 
-def interactive_plot_physical_mesh(mesh: dataset) -> None:
+@allow_mesh
+def interactive_plot_orth_slice(mesh: DataSet, property:str) -> None:
+    interactive_plot_mesh(mesh.slice_orthogonal(), property=property)  
+
+
+@allow_mesh
+def interactive_plot_physical_mesh(mesh: DataSet) -> None:
     interactive_plot_mesh(mesh, "gmsh:physical")
 
+@allow_mesh
+def interactive_plot_mesh(mesh: DataSet, property:str) -> None:
 
-def interactive_plot_mesh(mesh: dataset, property:str) -> None:
-    if isinstance(mesh, reader.Mesh):
-        mesh = mesh.mesh
-
-    plotter = pyvista.plotting.Plotter() # type: ignore
-    plotter.add_mesh(mesh, scalars=property)  # type: ignore
-    plotter.show()     # type: ignore
+    plotter = Plotter()  
+    plotter.add_mesh(mesh, scalars=property)   
+    plotter.show()      
 
 
-def save_mesh(mesh: dataset, property:str, path:Path = Path("./temp"), filename:str|None=None) -> None:
-    if isinstance(mesh, reader.Mesh):
-        mesh = mesh.mesh
+@allow_mesh
+def save_mesh(mesh: DataSet, 
+              property:str, 
+              path:Path = Path("./temp"), 
+              filename:str|None=None,
+              *,
+              screenshot_size:int = SCREENSHOT_SIZE,) -> None:
+    check_and_create_folder(path)
+    filename = _default_filename(filename=filename, property=property)
 
-    if not path.exists(): 
-        log.warn(f"Output folder {str(path.resolve())} does not exist, creating it")
-        path.mkdir()   
-
-    if filename is None:
-        filename = property + ".png"
 
     path = path/filename
 
-    plotter = pyvista.plotting.Plotter(off_screen=True) # type: ignore
-    plotter.add_mesh(mesh, scalars=property)  # type: ignore
-    plotter.screenshot(filename=path,)     # type: ignore
+    plotter = Plotter(off_screen=True)  
+    plotter.add_mesh(mesh, scalars=property)   
+    plotter.screenshot(filename=path,scale=screenshot_size)      
 
 
-def slice_and_save(mesh: dataset, property:str, normal: vector, *, slice_origin:vector=(0,0,0) ,path:Path = Path("./temp"), filename:str|None=None) -> None:
-    if isinstance(mesh, reader.Mesh):
-        mesh = mesh.mesh
+@allow_mesh
+def slice_and_save(mesh: DataSet, 
+                   property:str, 
+                   normal: vector, 
+                   *, 
+                   slice_origin:vector=(0,0,0),
+                   path:Path = Path("./temp"), 
+                   filename:str|None=None,
+                   screenshot_size:int = SCREENSHOT_SIZE,
+                   ) -> None:
+    check_and_create_folder(path)
+    filename = _default_filename(filename=filename, property=property)
 
-    if not path.exists(): 
-        log.warn(f"Output folder {str(path.resolve())} does not exist, creating it")
-        path.mkdir()   
-
-    if filename is None:
-        filename = property + ".png"
 
     path = path/filename
 
-    mesh=mesh.slice(normal=normal, origin=slice_origin) # type: ignore
+    mesh=mesh.slice(normal=normal, origin=slice_origin)  
 
-    plotter = pyvista.plotting.Plotter(off_screen=True) # type: ignore
-    plotter.add_mesh(mesh, scalars=property)  # type: ignore
+    plotter = pyvista.plotting.Plotter(off_screen=True)  
+    plotter.add_mesh(mesh, scalars=property)   
 
-    plotter.enable_parallel_projection()  # type: ignore
+    plotter.enable_parallel_projection()   
     plotter.camera_position = normal
 
-    plotter.screenshot(filename=path, scale=10)     # type: ignore
+    plotter.screenshot(filename=path, scale=screenshot_size)      
+
+
+def _default_filename(filename:str|None, property:str) -> str:
+    if filename is None:
+        filename = property + ".png"
+    return filename

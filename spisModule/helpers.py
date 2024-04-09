@@ -3,9 +3,11 @@
 import logging
 import logging.handlers
 import sys
-from typing import Callable, ParamSpec, TypeVar
+from typing import Callable, ParamSpec, TypeVar, Concatenate
 from functools import wraps
 from pathlib import Path
+import spisModule.simulation as simulation
+from pyvista.core.dataset import DataSet
 
 
 log = logging.getLogger("spisModule")
@@ -67,3 +69,24 @@ def LogFileOpening[T](function: Callable[[Path], T]) -> Callable[[Path], T]:
         return function(path)
     return inner
 
+
+def allow_mesh(function: Callable[Concatenate[DataSet, ...], None]) -> Callable[Concatenate[DataSet|simulation.Mesh, ...], None]:
+    """This decorator allows for a function that formally only processes a pyvista dataset to also process simulation.mesh
+    """
+    def my_logic(mesh: simulation.Mesh| DataSet) -> DataSet:
+        if isinstance(mesh, simulation.Mesh):
+            mesh = mesh.mesh
+        return mesh
+    def arg_transform(*args: ...):
+        return tuple(my_logic(arg) for arg in args)
+    def kwarg_transform(**kwargs: ...):
+        return {k: my_logic(v) for k, v in kwargs.items()}
+    @wraps(function)
+    def updated(*args: P.args, **kwargs: P.kwargs) -> None:
+        return function(*arg_transform(*args), **kwarg_transform(**kwargs))
+    return updated
+        
+def check_and_create_folder(path: Path) -> None:
+    if not path.exists(): 
+        log.warn(f"Output folder {str(path.resolve())} does not exist, creating it")
+        path.mkdir()   

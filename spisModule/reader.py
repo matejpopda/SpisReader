@@ -310,12 +310,12 @@ def ordered_list_of_distribution1D(path:Path, start_of_file_name:str, end_of_fil
 
 @LogFileOpening
 def load_distribution1d(path: Path) -> Distribution1D:
-    data: pandas.DataFrame = pandas.read_csv(path, sep='\t| ', engine='python') #type: ignore
+    data: pandas.DataFrame = pandas.read_csv(path, sep='\t| ', engine='python')  
     return Distribution1D(data=data, time=None)
 
 @LogFileOpening
 def load_time_series(path:Path) -> TimeSeries:
-    data: pandas.DataFrame = pandas.read_csv(path, sep=', ', engine='python') #type: ignore
+    data: pandas.DataFrame = pandas.read_csv(path, sep=', ', engine='python')  
     return TimeSeries(data=data)
 
 @LogFileOpening
@@ -399,7 +399,7 @@ def load_particle_list(path: Path) -> ParticleList:
     names = z.strip().strip("#").strip().split(" ")
     info = x + y + z
 
-    data: pandas.DataFrame = pandas.read_csv(path, sep='\t| ', engine='python', header=None, skiprows=[0,1,2], names=names) #type: ignore
+    data: pandas.DataFrame = pandas.read_csv(path, sep='\t| ', engine='python', header=None, skiprows=[0,1,2], names=names)  
     return ParticleList(data=data, time=None, info=info)
 
 
@@ -466,8 +466,8 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
     # We assume that mask is an identity, so it is not implemented for now
 
     for i in all_datasets:
-        data : xarray.Dataset = xarray.open_dataset(i) # type: ignore
-        mask : xarray.Dataset = xarray.open_dataset(i / ".." / data.attrs["meshMaskURI"]) # type: ignore
+        data : xarray.Dataset = xarray.open_dataset(i)  
+        mask : xarray.Dataset = xarray.open_dataset(i / ".." / data.attrs["meshMaskURI"])  
         mesh: Mesh
 
         # TODO: not using Masks we just check if the mask is an identity
