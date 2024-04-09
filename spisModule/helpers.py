@@ -59,7 +59,7 @@ def log_function_entry_and_exit(func: Callable[P, T]) -> Callable[P, T]:
     return wrapper
 
 
-def LogFileOpening[T](function: Callable[[Path], T]) -> Callable[[Path], T]:
+def LogFileOpening(function: Callable[[Path], T]) -> Callable[[Path], T]:
     '''A decorator to add logging to a function that reads a file given a path. Furthermore it checks if a file exist.'''
     @wraps(function)
     def inner(path: Path) -> T:

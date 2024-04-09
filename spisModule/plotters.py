@@ -53,7 +53,8 @@ vector = Directions|PlaneNormals|tuple[float, float, float]|tuple[int, int, int]
 
 @allow_mesh
 def interactive_plot_orth_slice(mesh: DataSet, property:str) -> None:
-    interactive_plot_mesh(mesh.slice_orthogonal(), property=property)  
+    temp: DataSet = mesh.slice_orthogonal()
+    interactive_plot_mesh(temp, property=property)  
 
 
 @allow_mesh
@@ -96,6 +97,7 @@ def slice_and_save(mesh: DataSet,
                    filename:str|None=None,
                    screenshot_size:int = SCREENSHOT_SIZE,
                    ) -> None:
+    
     check_and_create_folder(path)
     filename = _default_filename(filename=filename, property=property)
 
