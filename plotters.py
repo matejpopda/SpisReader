@@ -285,4 +285,8 @@ def make_gif_surface_from_default_view(input: list[tuple[Mesh, "str"]],
 
 
 
-
+def plot_final_quantities(result: Simulation, path:Path=DEFAULT_PATH):
+    log.info("Started plotting final quantities")
+    for i, j in glob_properties(result, "*final*", exclude="*surf*"):
+        xz_slice(i, j, path=path)
+    log.info("Done plotting final quantities")
