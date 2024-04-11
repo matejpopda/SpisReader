@@ -12,34 +12,38 @@ def main():
 
     result = reader.load_simulation(path)
 
-    # print(result.results.extracted_data_fields.spacecraft_face.properties)
+    log.info("started plotting images")
+    for i, j in plotters.glob_properties(result, "*final*", exclude="*surf*"):
+        plotters.xz_slice(i, j)
+    log.info("stopped plotting images")
 
-    # print(result.results.extracted_data_fields.spacecraft_mesh.properties)
-    # print(result.results.extracted_data_fields.spacecraft_vertex.properties)
-    # print(result.extracted_data_fields.volume_vertex.properties)
-
-
-
-    # print(result.results.extracted_data_fields.spacecraft_face.properties)
-    # plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_mesh) 
-    # plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_face.mesh)
-    # plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_vertex.mesh)
-    # plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.volume_vertex.mesh)
-
-    # plotters.save_mesh(result.extracted_data_fields.spacecraft_face, "Conductance_t=0.0s")
-    # plotters.slice_and_save(result.extracted_data_fields.volume_vertex, "final_elec1_charge_density_-_step0", normal=plotters.PlaneNormals.XZ)
-    # plotters.xz_slice(result.extracted_data_fields.volume_vertex, "final_elec1_charge_density_-_step0")
-    # plotters.interactive_plot_orth_slice(result.results.extracted_data_fields.volume_vertex, "final_elec1_charge_density_-_step0")
 
     total_charge =  plotters.glob_properties(result, "improved__total_charge_density_at_t_=_*")
     log.info("started plotting gif of size " + str(len(total_charge)))
     plotters.make_gif_xz_slice(total_charge, "total_charge")
     log.info("stopped plotting gif")
 
-    log.info("started plotting images")
-    for i, j in plotters.glob_properties(result.results.extracted_data_fields.volume_vertex, "improved__total_charge_density_at_t_=_*"):
-        plotters.xz_slice(i, j)
-    log.info("stopped plotting images")
+
+    
+    total_charge =  plotters.glob_properties(result, "improved_ions1_charge_density_at_t_=*")
+    log.info("started plotting gif of size " + str(len(total_charge)))
+    plotters.make_gif_xz_slice(total_charge, "ions1_charge_density")
+    log.info("stopped plotting gif")
+
+    total_charge =  plotters.glob_properties(result, "improved_net_current__on_regular_surf_at_t_=*")
+    log.info("started plotting gif of size " + str(len(total_charge)))
+    plotters.make_gif_surface_from_default_view(total_charge, "net_current")
+    log.info("stopped plotting gif")
+
+
+
+
+    
+    total_charge =  plotters.glob_properties(result, "plasma_pot_at_t_=_*")
+    log.info("started plotting gif of size " + str(len(total_charge)))
+    plotters.make_gif_xz_slice(total_charge, "plasma_pot")
+    log.info("stopped plotting gif")
+
 
 
 if __name__=="__main__":

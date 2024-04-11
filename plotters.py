@@ -176,46 +176,47 @@ def yz_slice(mesh: DataSet,
                           clim=clim)
 
 def glob_properties(input: Simulation| Mesh| SimulationPreprocessing|SimulationResults|ExtractedDataFields|NumericalResults|list[ParticleDetector]|list[Mesh] ,
-                    property:str, *, ignore_num_kernel:bool=True ) -> list[tuple[Mesh, "str"]]:
+                    property:str, *, ignore_num_kernel:bool=True , exclude:str|None=None) -> list[tuple[Mesh, "str"]]:
     
     
     result:list[tuple[Mesh, "str"]]  = []
     if isinstance(input, Mesh):
         strings = fnmatch.filter(input.properties, property)
         for i in strings:
-            result.append((input,i))
+            if exclude is None or not fnmatch.fnmatch(i, exclude):
+                result.append((input,i))
         return result
 
     if isinstance(input, Simulation):
-        result += glob_properties(input.preprocessing, property=property)
-        result += glob_properties(input.results, property=property)
+        result += glob_properties(input.preprocessing, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
+        result += glob_properties(input.results, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
 
     if isinstance(input, SimulationPreprocessing):
-        result += glob_properties(input.model, property=property)
+        result += glob_properties(input.model, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
 
     if isinstance(input, SimulationResults):
-        result += glob_properties(input.extracted_data_fields, property=property)
+        result += glob_properties(input.extracted_data_fields, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
         if not ignore_num_kernel:
-            result += glob_properties(input.numerical_kernel_output, property=property)
+            result += glob_properties(input.numerical_kernel_output, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
 
     if isinstance(input, NumericalResults):
-        result += glob_properties(input.particle_detectors, property=property)
+        result += glob_properties(input.particle_detectors, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
 
     if isinstance(input, list):
         for i in input:
             if isinstance(i, ParticleDetector):
-                result += glob_properties(i.differential_flux_mesh, property=property)
-                result += glob_properties(i.initial_distribution_mesh, property=property)
-                result += glob_properties(i.distribution_function_mesh, property=property)
+                result += glob_properties(i.differential_flux_mesh, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
+                result += glob_properties(i.initial_distribution_mesh, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
+                result += glob_properties(i.distribution_function_mesh, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
             if isinstance(i, Mesh):
-                result += glob_properties(i, property=property)
+                result += glob_properties(i, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
                 
 
     if isinstance(input, ExtractedDataFields):
-        result += glob_properties(input.spacecraft_face, property=property)
-        result += glob_properties(input.spacecraft_mesh, property=property)
-        result += glob_properties(input.spacecraft_vertex, property=property)
-        result += glob_properties(input.volume_vertex, property=property)
+        result += glob_properties(input.spacecraft_face, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
+        result += glob_properties(input.spacecraft_mesh, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
+        result += glob_properties(input.spacecraft_vertex, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
+        result += glob_properties(input.volume_vertex, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
     
     return result
 
@@ -244,10 +245,44 @@ def make_gif_xz_slice(input: list[tuple[Mesh, "str"]],
 
     for mesh, property in input: 
         mesh = mesh.mesh.slice(normal=PlaneNormals.XZ, origin=slice_origin) #type:ignore
-        plotter.add_mesh(mesh, scalars=property, clim=(min_val, max_val)) #type: ignore
+        plotter.add_mesh(mesh, scalars=property, clim=(min_val, max_val), style="surface") #type: ignore
         plotter.enable_parallel_projection()                        #type: ignore
         plotter.camera_position = PlaneNormals.XZ
         plotter.write_frame()
         plotter.clear()
     plotter.close()
+
+
+
+def make_gif_surface_from_default_view(input: list[tuple[Mesh, "str"]], 
+                                       filename:str,
+                                       *, 
+                                       slice_origin:vector=ORIGIN_VECTOR,
+                                       path:Path = DEFAULT_PATH, 
+                                       screenshot_size:int = SCREENSHOT_SIZE,
+                                       ) -> None:
+    if not fnmatch.fnmatch(filename, "*.gif"):
+        filename = filename + ".gif"
+    plotter = Plotter(off_screen=True)
+
+    plotter.open_gif(str(path/(filename))) #type: ignore
+    plotter.window_size = [plotter.window_size[0]*SCREENSHOT_SIZE, plotter.window_size[1]*SCREENSHOT_SIZE] #type: ignore
+
+
+    min_val, max_val = math.inf , -math.inf
+    for mesh, property in input: 
+        cur_min, cur_max= mesh.mesh.get_data_range(property) #type: ignore
+        min_val = min(cur_min, min_val)
+        max_val = max(cur_max, max_val)
+
+
+    for mesh, property in input: 
+        plotter.add_mesh(mesh.mesh, scalars=property, clim=(min_val, max_val)) #type: ignore
+        plotter.enable_parallel_projection()                        #type: ignore
+        plotter.write_frame()
+        plotter.clear()
+    plotter.close()
+
+
+
 
