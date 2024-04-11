@@ -21,17 +21,18 @@ def main():
 
 
     # print(result.results.extracted_data_fields.spacecraft_face.properties)
-    plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_mesh) 
-    plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_face.mesh)
+    # plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_mesh) 
+    # plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_face.mesh)
     # plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.spacecraft_vertex.mesh)
     # plotters.interactive_plot_physical_mesh(result.results.extracted_data_fields.volume_vertex.mesh)
 
-
     # plotters.save_mesh(result.extracted_data_fields.spacecraft_face, "Conductance_t=0.0s")
     # plotters.slice_and_save(result.extracted_data_fields.volume_vertex, "final_elec1_charge_density_-_step0", normal=plotters.PlaneNormals.XZ)
+    # plotters.xz_slice(result.extracted_data_fields.volume_vertex, "final_elec1_charge_density_-_step0")
+    # plotters.interactive_plot_orth_slice(result.results.extracted_data_fields.volume_vertex, "final_elec1_charge_density_-_step0")
 
-    plotters.interactive_plot_orth_slice(result.results.extracted_data_fields.volume_vertex, "final_elec1_charge_density_-_step0")
-
+    for i, j in plotters.glob_properties(result.results.extracted_data_fields.volume_vertex, "*"):
+        plotters.xz_slice(i, j)
     
 
 

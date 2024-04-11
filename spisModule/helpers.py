@@ -51,23 +51,23 @@ def make_log_message(function:Callable[P,T], message:str, level:int) -> logging.
 
 def log_function_entry_and_exit(func: Callable[P, T]) -> Callable[P, T]:
     @wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+    def entry_exit_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         log.handle(make_log_message(func, "Entered function: " + func.__name__, logging.INFO))
         x =  func(*args, **kwargs)
         log.handle(make_log_message(func, "Exited function: " + func.__name__, logging.INFO))
         return x 
-    return wrapper
+    return entry_exit_wrapper
 
 
 def LogFileOpening(function: Callable[[Path], T]) -> Callable[[Path], T]:
     '''A decorator to add logging to a function that reads a file given a path. Furthermore it checks if a file exist.'''
     @wraps(function)
-    def inner(path: Path) -> T:
+    def logging_inner(path: Path) -> T:
         log.handle(make_log_message(function, f"Reading file:\t {str(path)} \t during the call of function {function.__name__} ", logging.DEBUG))
         if not path.exists():
             log.handle(make_log_message(function, f"Cant read file:\t {str(path)} \t during the call of function {function.__name__}. File doesn't exist.", logging.ERROR))
         return function(path)
-    return inner
+    return logging_inner
 
 
 def allow_mesh(function: Callable[Concatenate[DataSet, ...], None]) -> Callable[Concatenate[DataSet|simulation.Mesh, ...], None]:
