@@ -18,12 +18,12 @@ DEFAULT_PATH = Path("./temp")
 
 
 # For Mesh
-    # Slice - takes origin and normal, and mesh
-    # Slice origin - just normal
-    # Plot the slice
-    # Glob for properties - order them by time (final at the end) 
+    # Slice - takes origin and normal, and mesh - DONE
+    # Slice origin - just normal - DONE
+    # Plot the slice - DONE
+    # Glob for properties - order them by time (final at the end)  - DONE
     # Draw the whole list in a gif
-    # Draw the list into separate files
+    # Draw the list into separate files - DONE
     # Get a list of properties somewhere
     # 
 
@@ -112,10 +112,9 @@ def slice_and_save(mesh: DataSet,
 
     path = path/filename
 
-    mesh=mesh.slice(normal=normal, origin=slice_origin)         #type: ignore
-
     plotter = pyvista.plotting.Plotter(off_screen=True)         #type: ignore
-    plotter.add_mesh(mesh, scalars=property)                    #type: ignore
+    mesh = mesh.slice(normal=PlaneNormals.XZ, origin=slice_origin) #type:ignore
+    plotter.add_mesh(mesh, scalars=property, ) #type: ignore
 
     plotter.enable_parallel_projection()                        #type: ignore
     plotter.camera_position = normal
@@ -219,3 +218,28 @@ def glob_properties(input: Simulation| Mesh| SimulationPreprocessing|SimulationR
         result += glob_properties(input.volume_vertex, property=property)
     
     return result
+
+def make_gif_xz_slice(input: list[tuple[Mesh, "str"]], 
+                      filename:str,
+                      *, 
+                      slice_origin:vector=ORIGIN_VECTOR,
+                      path:Path = DEFAULT_PATH, 
+
+                      screenshot_size:int = SCREENSHOT_SIZE,
+                      ) -> None:
+    if not fnmatch.fnmatch(filename, "*.gif"):
+        filename = filename + ".gif"
+    plotter = Plotter(off_screen=True)
+
+    plotter.open_gif(str(path/(filename))) #type: ignore
+    plotter.window_size = [plotter.window_size[0]*SCREENSHOT_SIZE, plotter.window_size[1]*SCREENSHOT_SIZE] #type: ignore
+
+    for mesh, property in input: 
+        mesh = mesh.mesh.slice(normal=PlaneNormals.XZ, origin=slice_origin) #type:ignore
+        plotter.add_mesh(mesh, scalars=property, ) #type: ignore
+        plotter.enable_parallel_projection()                        #type: ignore
+        plotter.camera_position = PlaneNormals.XZ
+        plotter.write_frame()
+        plotter.clear()
+    plotter.close()
+

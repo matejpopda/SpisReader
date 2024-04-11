@@ -70,7 +70,7 @@ def LogFileOpening(function: Callable[[Path], T]) -> Callable[[Path], T]:
     return logging_inner
 
 
-def allow_mesh(function: Callable[Concatenate[DataSet, ...], None]) -> Callable[Concatenate[DataSet|simulation.Mesh, ...], None]:
+def allow_mesh(function: Callable[Concatenate[DataSet, P], None]) -> Callable[Concatenate[DataSet|simulation.Mesh, P], None]:
     """This decorator allows for a function that formally only processes a pyvista dataset to also process simulation.mesh
     """
     def my_logic(mesh: simulation.Mesh| DataSet) -> DataSet:
@@ -83,8 +83,8 @@ def allow_mesh(function: Callable[Concatenate[DataSet, ...], None]) -> Callable[
         return {k: my_logic(v) for k, v in kwargs.items()}
     @wraps(function)
     def updated(*args: P.args, **kwargs: P.kwargs) -> None:
-        return function(*arg_transform(*args), **kwarg_transform(**kwargs))
-    return updated
+        return function(*arg_transform(*args), **kwarg_transform(**kwargs))  #type: ignore
+    return updated                                                           #type: ignore
         
 def check_and_create_folder(path: Path) -> None:
     if not path.exists(): 

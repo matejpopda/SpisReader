@@ -2,7 +2,7 @@ import pathlib
 import helpers 
 import plotters 
 import reader
-
+import logging as log
 
 @helpers.log_function_entry_and_exit
 def main():
@@ -10,7 +10,7 @@ def main():
     # path = pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
     path = pathlib.Path("C:/Users/matej/Desktop/VU/datafromsofie/S03_11.spis5/S03_11")
 
-    result = reader.load_simulation(path, force_raw_processing=True)
+    result = reader.load_simulation(path)
 
     # print(result.results.extracted_data_fields.spacecraft_face.properties)
 
@@ -31,9 +31,15 @@ def main():
     # plotters.xz_slice(result.extracted_data_fields.volume_vertex, "final_elec1_charge_density_-_step0")
     # plotters.interactive_plot_orth_slice(result.results.extracted_data_fields.volume_vertex, "final_elec1_charge_density_-_step0")
 
-    for i, j in plotters.glob_properties(result.results.extracted_data_fields.volume_vertex, "*"):
+    total_charge =  plotters.glob_properties(result, "improved__total_charge_density_at_t_=_*")
+    log.info("started plotting gif of size " + str(len(total_charge)))
+    plotters.make_gif_xz_slice(total_charge, "total_charge")
+    log.info("stopped plotting gif")
+
+    log.info("started plotting images")
+    for i, j in plotters.glob_properties(result.results.extracted_data_fields.volume_vertex, "improved__total_charge_density_at_t_=_*"):
         plotters.xz_slice(i, j)
-    
+    log.info("stopped plotting images")
 
 
 if __name__=="__main__":
