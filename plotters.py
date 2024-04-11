@@ -7,6 +7,7 @@ from simulation import *
 import pyvista.core.dataset
 from helpers import allow_mesh, check_and_create_folder
 import logging 
+import math
 import fnmatch
 log = logging.getLogger(__name__)
 
@@ -16,16 +17,6 @@ SCREENSHOT_SIZE = 2
 ORIGIN_VECTOR = (0,0,0)
 DEFAULT_PATH = Path("./temp")
 
-
-# For Mesh
-    # Slice - takes origin and normal, and mesh - DONE
-    # Slice origin - just normal - DONE
-    # Plot the slice - DONE
-    # Glob for properties - order them by time (final at the end)  - DONE
-    # Draw the whole list in a gif
-    # Draw the list into separate files - DONE
-    # Get a list of properties somewhere
-    # 
 
 # For timeseries 
     # Draw it
@@ -83,7 +74,9 @@ def save_mesh(mesh: DataSet,
               path:Path = DEFAULT_PATH, 
               filename:str|None=None,
               *,
-              screenshot_size:int = SCREENSHOT_SIZE,) -> None:
+              screenshot_size:int = SCREENSHOT_SIZE,
+              clim:tuple[float, float]|None = None, 
+              ) -> None:
     check_and_create_folder(path)
     filename = _default_filename(filename=filename, property=property)
 
@@ -91,7 +84,7 @@ def save_mesh(mesh: DataSet,
     path = path/filename
 
     plotter = Plotter(off_screen=True)  
-    plotter.add_mesh(mesh, scalars=property)                #type: ignore
+    plotter.add_mesh(mesh, scalars=property, clim=clim)                #type: ignore
     plotter.screenshot(filename=path,scale=screenshot_size) #type: ignore     
 
 
@@ -104,6 +97,7 @@ def slice_and_save(mesh: DataSet,
                    path:Path = DEFAULT_PATH, 
                    filename:str|None=None,
                    screenshot_size:int = SCREENSHOT_SIZE,
+                   clim:tuple[float, float]|None = None,
                    ) -> None:
     
     check_and_create_folder(path)
@@ -114,7 +108,7 @@ def slice_and_save(mesh: DataSet,
 
     plotter = pyvista.plotting.Plotter(off_screen=True)         #type: ignore
     mesh = mesh.slice(normal=PlaneNormals.XZ, origin=slice_origin) #type:ignore
-    plotter.add_mesh(mesh, scalars=property, ) #type: ignore
+    plotter.add_mesh(mesh, scalars=property, clim=clim) #type: ignore
 
     plotter.enable_parallel_projection()                        #type: ignore
     plotter.camera_position = normal
@@ -129,6 +123,7 @@ def xz_slice(mesh: DataSet,
             path:Path = DEFAULT_PATH, 
             filename:str|None=None,
             screenshot_size:int = SCREENSHOT_SIZE,
+            clim:tuple[float, float]|None = None,
                 ) -> None:
     normal = PlaneNormals.XZ
     return slice_and_save(mesh,
@@ -137,7 +132,8 @@ def xz_slice(mesh: DataSet,
                           slice_origin=slice_origin,
                           path=path,
                           filename=filename,
-                          screenshot_size=screenshot_size)
+                          screenshot_size=screenshot_size,
+                          clim =clim,)
 
 @allow_mesh
 def xy_slice(mesh: DataSet, 
@@ -147,6 +143,7 @@ def xy_slice(mesh: DataSet,
             path:Path = DEFAULT_PATH, 
             filename:str|None=None,
             screenshot_size:int = SCREENSHOT_SIZE,
+            clim:tuple[float, float]|None = None,
                 ) -> None:
     normal = PlaneNormals.XY
     return slice_and_save(mesh,
@@ -155,7 +152,8 @@ def xy_slice(mesh: DataSet,
                           slice_origin=slice_origin,
                           path=path,
                           filename=filename,
-                          screenshot_size=screenshot_size)
+                          screenshot_size=screenshot_size,
+                          clim=clim)
 
 @allow_mesh
 def yz_slice(mesh: DataSet, 
@@ -165,6 +163,7 @@ def yz_slice(mesh: DataSet,
             path:Path = DEFAULT_PATH, 
             filename:str|None=None,
             screenshot_size:int = SCREENSHOT_SIZE,
+            clim:tuple[float, float]|None = None,
                 ) -> None:
     normal = PlaneNormals.YZ
     return slice_and_save(mesh,
@@ -173,7 +172,8 @@ def yz_slice(mesh: DataSet,
                           slice_origin=slice_origin,
                           path=path,
                           filename=filename,
-                          screenshot_size=screenshot_size)
+                          screenshot_size=screenshot_size,
+                          clim=clim)
 
 def glob_properties(input: Simulation| Mesh| SimulationPreprocessing|SimulationResults|ExtractedDataFields|NumericalResults|list[ParticleDetector]|list[Mesh] ,
                     property:str, *, ignore_num_kernel:bool=True ) -> list[tuple[Mesh, "str"]]:
@@ -234,9 +234,17 @@ def make_gif_xz_slice(input: list[tuple[Mesh, "str"]],
     plotter.open_gif(str(path/(filename))) #type: ignore
     plotter.window_size = [plotter.window_size[0]*SCREENSHOT_SIZE, plotter.window_size[1]*SCREENSHOT_SIZE] #type: ignore
 
+
+    min_val, max_val = math.inf , -math.inf
+    for mesh, property in input: 
+        cur_min, cur_max= mesh.mesh.get_data_range(property) #type: ignore
+        min_val = min(cur_min, min_val)
+        max_val = max(cur_max, max_val)
+
+
     for mesh, property in input: 
         mesh = mesh.mesh.slice(normal=PlaneNormals.XZ, origin=slice_origin) #type:ignore
-        plotter.add_mesh(mesh, scalars=property, ) #type: ignore
+        plotter.add_mesh(mesh, scalars=property, clim=(min_val, max_val)) #type: ignore
         plotter.enable_parallel_projection()                        #type: ignore
         plotter.camera_position = PlaneNormals.XZ
         plotter.write_frame()
