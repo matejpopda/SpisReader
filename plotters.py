@@ -3,9 +3,9 @@ from pathlib import Path
 import pyvista.plotting
 from pyvista.plotting.plotter import Plotter
 from pyvista.core.dataset import DataSet
-from spisModule.simulation import *
+from simulation import *
 import pyvista.core.dataset
-from spisModule.helpers import allow_mesh, check_and_create_folder
+from helpers import allow_mesh, check_and_create_folder
 import logging 
 import fnmatch
 log = logging.getLogger(__name__)

@@ -12,8 +12,8 @@ import numpy as np
 import xarray
 import sparse
 import numpy.typing
-from spisModule.helpers import LogFileOpening
-from spisModule.simulation import *
+from helpers import LogFileOpening
+from simulation import *
 
 log = logging.getLogger(__name__)
 

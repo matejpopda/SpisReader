@@ -6,7 +6,7 @@ import sys
 from typing import Callable, ParamSpec, TypeVar, Concatenate
 from functools import wraps
 from pathlib import Path
-import spisModule.simulation as simulation
+import simulation
 from pyvista.core.dataset import DataSet
 
 

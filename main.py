@@ -1,7 +1,7 @@
-import spisModule as spis
 import pathlib
-import spisModule.helpers as helpers
-import spisModule.plotters as plotters
+import helpers 
+import plotters 
+import reader
 
 
 @helpers.log_function_entry_and_exit
@@ -10,7 +10,7 @@ def main():
     # path = pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")  / "CS_01"
     path = pathlib.Path("C:/Users/matej/Desktop/VU/datafromsofie/S03_11.spis5/S03_11")
 
-    result = spis.load_simulation(path)
+    result = reader.load_simulation(path, force_raw_processing=True)
 
     # print(result.results.extracted_data_fields.spacecraft_face.properties)
 
