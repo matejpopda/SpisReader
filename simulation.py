@@ -104,7 +104,7 @@ class ExtractedDataFields:
     spacecraft_face : "Mesh"
     volume_vertex : "Mesh"
     spacecraft_mesh: "Mesh"
-
+    display_vol_mesh: "Mesh"
 
 @dataclass(kw_only=True)
 class NumericalResults:

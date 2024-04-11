@@ -449,6 +449,11 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
     spacecraft_mesh_name = spacecraft_mesh_file.name
     spacecraft_mesh = load_mesh(spacecraft_mesh_file)
     
+
+    display_vol_mesh_file = list(path.glob("DisplayVolMesh*.msh"))[0]
+    display_vol_mesh_name = display_vol_mesh_file.name
+    display_vol_mesh = load_mesh(display_vol_mesh_file)
+
     all_datasets: list[Path] = []
     time_series: list[Path] = [] # We are not doing anything with this, for now
 
@@ -473,9 +478,6 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
         # TODO: not using Masks we just check if the mask is an identity
         check_mask_is_identity(mask, data.attrs["meshMaskURI"])
 
-        if "DisplayVolMesh" in mask.attrs["meshURI"]:  # same mesh file
-            mask.attrs["meshURI"] = "Spacecraft_VERTEX.msh"
-
         if mask.attrs["meshURI"] == "Spacecraft_FACE.msh":
             mesh = spacecraft_face
         elif mask.attrs["meshURI"] == "Spacecraft_VERTEX.msh":
@@ -484,6 +486,9 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
             mesh = volume_vertex 
         elif mask.attrs["meshURI"] ==  ("../../../../Preprocessing/Mesh/GeometricalSystem/" + str(spacecraft_mesh_name)):
             mesh = spacecraft_mesh
+        elif "DisplayVolMesh" in mask.attrs["meshURI"]:
+            assert display_vol_mesh_name == mask.attrs["meshURI"]
+            mesh = display_vol_mesh
         else: # If the mesh isnt one the 4 types we skip the data
             log.error("Trying to add data to an unknown mesh, skipping")
             log.error("The mesh name is " + str(mask.attrs["meshURI"]))
@@ -492,14 +497,15 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
         # https://stackoverflow.com/questions/74693202/add-point-data-to-mesh-and-save-as-vtu
         for _, da in data.data_vars.items():
             try:
-                data = da.data
-                if len(data) == mesh.mesh.number_of_points:
-                    mesh.mesh.point_data[i.stem] = da.data
-                elif len(data) == mesh.mesh.number_of_cells:
-                    mesh.mesh.cell_data[i.stem] = da.data
+                cur_data = da.data
+                if len(cur_data) == mesh.mesh.number_of_points:
+                    mesh.mesh.point_data[i.stem] = cur_data
+                elif len(cur_data) == mesh.mesh.number_of_cells:
+                    mesh.mesh.cell_data[i.stem] = cur_data
                 # this last option shouldn't run
                 else: 
-                    mesh.mesh.field_data[i.stem] = da.data  
+                    log.warn(f"{str(i.stem)} was saved as field data. This data can't be plotted")
+                    mesh.mesh.field_data[i.stem] = cur_data  
                 mesh.properties.append(i.stem) 
                 log.debug("Loaded " + i.stem)
             except Exception as e:
@@ -511,7 +517,8 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
     return ExtractedDataFields(spacecraft_face=spacecraft_face,
                                spacecraft_vertex=spacecraft_vertex,
                                volume_vertex=volume_vertex,
-                               spacecraft_mesh=spacecraft_mesh)
+                               spacecraft_mesh=spacecraft_mesh,
+                               display_vol_mesh=display_vol_mesh)
 
 
 

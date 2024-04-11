@@ -217,6 +217,7 @@ def glob_properties(input: Simulation| Mesh| SimulationPreprocessing|SimulationR
         result += glob_properties(input.spacecraft_mesh, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
         result += glob_properties(input.spacecraft_vertex, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
         result += glob_properties(input.volume_vertex, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
+        result += glob_properties(input.display_vol_mesh, property=property, ignore_num_kernel=ignore_num_kernel,exclude=exclude)
     
     return result
 
@@ -290,3 +291,6 @@ def plot_final_quantities(result: Simulation, path:Path=DEFAULT_PATH):
     for i, j in glob_properties(result, "*final*", exclude="*surf*"):
         xz_slice(i, j, path=path)
     log.info("Done plotting final quantities")
+
+
+#TODO: u clim nastavení pomocí quantilů
