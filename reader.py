@@ -12,6 +12,7 @@ import numpy as np
 import xarray
 import sparse
 import numpy.typing
+import functools
 from helpers import LogFileOpening
 from simulation import *
 
@@ -475,6 +476,7 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
         mask : xarray.Dataset = xarray.open_dataset(i / ".." / data.attrs["meshMaskURI"])  
         mesh: Mesh
 
+
         # TODO: not using Masks we just check if the mask is an identity
         check_mask_is_identity(mask, data.attrs["meshMaskURI"])
 
@@ -486,10 +488,9 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
             mesh = volume_vertex 
         elif mask.attrs["meshURI"] ==  ("../../../../Preprocessing/Mesh/GeometricalSystem/" + str(spacecraft_mesh_name)):
             mesh = spacecraft_mesh
-        elif "DisplayVolMesh" in mask.attrs["meshURI"]:
-            assert display_vol_mesh_name == mask.attrs["meshURI"]
+        elif display_vol_mesh_name == mask.attrs["meshURI"]:
             mesh = display_vol_mesh
-        else: # If the mesh isnt one the 4 types we skip the data
+        else: # If the mesh isnt one the 5 types we skip the data
             log.error("Trying to add data to an unknown mesh, skipping")
             log.error("The mesh name is " + str(mask.attrs["meshURI"]))
             continue
@@ -523,13 +524,12 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
 
 
 
-def check_mask_is_identity(dataset: xarray.Dataset, mask_name:str):
-    for i, j  in enumerate(dataset["nbMeshElement"].data):
-        if i != j:
-            log.error("Mask isn't an identity, attributes using it are wrong")
-            log.error("The mask is" + mask_name)
-            return
-        
+def check_mask_is_identity(dataset: xarray.Dataset, mask_name:str) -> bool:
+    x:xarray.DataArray = dataset["meshElmentId"]
+    mask_as_series: pandas.Series[int] = x.to_series()    
+
+    return mask_as_series.is_monotonic_increasing
+
 
 
 
