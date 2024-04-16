@@ -44,7 +44,3 @@ if __name__=="__main__":
     helpers.default_log_config()
     main()
     
-
-# TODO: Make a JSON out of the data dictionary
-# TODO: One type of numerical output can be Channel1*, add handling, not sure why the files got created either
-# TODO: Ignoring Datafield monitored and extracted timeseries because its obtainable from masks

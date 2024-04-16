@@ -12,6 +12,7 @@ import numpy as np
 import xarray
 import sparse
 import numpy.typing
+from copy import deepcopy
 import functools
 from helpers import LogFileOpening
 from simulation import *
@@ -468,8 +469,6 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
             continue
         all_datasets.append(i)
 
-    # all_datasets contain all paths that can be added to a mesh after running through a MASK 
-    # We assume that mask is an identity, so it is not implemented for now
 
     for i in all_datasets:
         data : xarray.Dataset = xarray.open_dataset(i)  
@@ -477,8 +476,6 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
         mesh: Mesh
 
 
-        # TODO: not using Masks we just check if the mask is an identity
-        check_mask_is_identity(mask, data.attrs["meshMaskURI"])
 
         if mask.attrs["meshURI"] == "Spacecraft_FACE.msh":
             mesh = spacecraft_face
@@ -495,24 +492,19 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
             log.error("The mesh name is " + str(mask.attrs["meshURI"]))
             continue
 
+
+        
+        if not check_mask_is_identity(mask, data.attrs["meshMaskURI"]):
+            log.debug(f"Mask {data.attrs["meshMaskURI"]} was not an identity")
+            temp = reshape_data_according_to_mask(data, mask)
+
+            add_data_to_mesh(da=temp, mesh=mesh, path_to_property=i, mask=mask)
+            continue
+
         # https://stackoverflow.com/questions/74693202/add-point-data-to-mesh-and-save-as-vtu
-        for _, da in data.data_vars.items():
-            try:
-                cur_data = da.data
-                if len(cur_data) == mesh.mesh.number_of_points:
-                    mesh.mesh.point_data[i.stem] = cur_data
-                elif len(cur_data) == mesh.mesh.number_of_cells:
-                    mesh.mesh.cell_data[i.stem] = cur_data
-                # this last option shouldn't run
-                else: 
-                    log.warn(f"{str(i.stem)} was saved as field data. This data can't be plotted")
-                    mesh.mesh.field_data[i.stem] = cur_data  
-                mesh.properties.append(i.stem) 
-                log.debug("Loaded " + i.stem)
-            except Exception as e:
-                log.warn("Failed on " + i.stem + " this data won't be available")
-                log.debug("Was using the mask " + str(mask.attrs["meshURI"]))
-                log.debug(type(e).__name__ ,e)
+        for _, da in data.data_vars.items():                                                # type:ignore
+                cur_data_array: xarray.DataArray = da                                       # type:ignore
+                add_data_to_mesh(da=cur_data_array, mesh=mesh, path_to_property=i, mask=mask) # type:ignore
                 continue
 
     return ExtractedDataFields(spacecraft_face=spacecraft_face,
@@ -523,14 +515,79 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
 
 
 
+def add_data_to_mesh(da: xarray.DataArray, mesh: Mesh, path_to_property:Path, mask:xarray.Dataset):
+    try:
+        cur_data = da.data
+        if len(cur_data) == mesh.mesh.number_of_points:
+            mesh.mesh.point_data[path_to_property.stem] = cur_data
+        elif len(cur_data) == mesh.mesh.number_of_cells:
+            mesh.mesh.cell_data[path_to_property.stem] = cur_data
+        # this last option shouldn't run
+        else: 
+            log.warn(f"{str(path_to_property.stem)} was saved as field data. This data can't be plotted")
+            mesh.mesh.field_data[path_to_property.stem] = cur_data  
+        mesh.properties.append(path_to_property.stem) 
+        log.debug("Loaded " + path_to_property.stem)
+    except Exception as e:
+        log.warn("Failed on " + path_to_property.stem + " this data won't be available")
+        log.debug("Was using the mask " + str(mask.attrs["meshURI"]))
+        log.debug(type(e).__name__ ,e)
+
 
 def check_mask_is_identity(dataset: xarray.Dataset, mask_name:str) -> bool:
+    # Could be made more rigorous
     x:xarray.DataArray = dataset["meshElmentId"]
-    mask_as_series: pandas.Series[int] = x.to_series()    
+    mask_as_series: pandas.Series[int] = x.to_series()    # type:ignore
 
     return mask_as_series.is_monotonic_increasing
 
+def reshape_data_according_to_mask(data:xarray.Dataset, mask:xarray.Dataset) -> xarray.DataArray:
+    mask_as_series: list[int] = mask["meshElmentId"].to_series().to_list()
+    
 
+
+
+    data_array: xarray.DataArray|None = None
+    for _, j in data.data_vars.items():
+        data_array = j
+
+    assert data_array is not None
+
+    if abs(data_array.min() - data_array.max()) < np.finfo(float).eps*4:
+        log.info(f"Not permuting according to {data.attrs["meshMaskURI"]} because it's identically almost zero.")
+        return data_array
+    
+    if data.attrs["meshMaskURI"] == "surfFlagSC-FACEMask.nc": # TODO
+        log.error(f"Not permuting according to {data.attrs["meshMaskURI"]}, not implemented yet.")
+        return data_array
+
+
+    data_array = data_array.to_numpy()
+    
+    # permutation_dict = dict(enumerate(mask_as_series))
+
+
+    assert data_array is not None
+    # def transform(entry: float) -> float:
+    #     return permutation_dict[entry]
+    # transform = np.vectorize(transform)
+
+    # result = transform(data_array)
+
+
+
+    inverted_indices = [0] * len(mask_as_series)
+
+    # Invert the indices
+    for i, idx in enumerate(mask_as_series):
+        inverted_indices[idx] = i
+
+    mask_as_series = inverted_indices
+ 
+    result = [data_array[i] for i in mask_as_series]
+    result = np.array(result)
+
+    return xarray.DataArray(result)
 
 
 def load_simulation(path: Path, *, processed_name:str="processed_simulation.pkl", force_raw_processing:bool = False) -> Simulation:
