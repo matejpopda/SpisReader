@@ -42,9 +42,7 @@ def default_log_config():
     logging.getLogger().addHandler(handler_stdout)
 
 
-def make_log_message(
-    function: Callable[P, T], message: str, level: int
-) -> logging.LogRecord:
+def make_log_message(function: Callable[P, T], message: str, level: int) -> logging.LogRecord:
     return log.makeRecord(
         name=log.name,
         level=level,
@@ -60,13 +58,9 @@ def make_log_message(
 def log_function_entry_and_exit(func: Callable[P, T]) -> Callable[P, T]:
     @wraps(func)
     def entry_exit_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-        log.handle(
-            make_log_message(func, "Entered function: " + func.__name__, logging.INFO)
-        )
+        log.handle(make_log_message(func, "Entered function: " + func.__name__, logging.INFO))
         x = func(*args, **kwargs)
-        log.handle(
-            make_log_message(func, "Exited function: " + func.__name__, logging.INFO)
-        )
+        log.handle(make_log_message(func, "Exited function: " + func.__name__, logging.INFO))
         return x
 
     return entry_exit_wrapper

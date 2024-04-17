@@ -59,9 +59,7 @@ def read_csv(
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values: (
-        Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
-    ) = ...,
+    na_values: (Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None) = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool | lib.NoDefault = ...,

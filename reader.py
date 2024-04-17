@@ -28,9 +28,7 @@ def load_data(path: Path) -> Simulation:
 def get_simulation_preprocessing(
     path_to_preprocessing: Path,
 ) -> SimulationPreprocessing:
-    model_path: list[Path] = list(
-        (path_to_preprocessing / "Mesh" / "GeometricalSystem").glob("*")
-    )
+    model_path: list[Path] = list((path_to_preprocessing / "Mesh" / "GeometricalSystem").glob("*"))
     assert len(model_path) == 1
     model: Mesh = load_mesh(model_path[0])
     # Loads file Preprocessing/Mesh/GeometricalSystem/*.msh
@@ -38,14 +36,10 @@ def get_simulation_preprocessing(
     groups: list[Group] = get_groups(path_to_preprocessing / "Groups" / "groups.xml")
     # \Preprocessing\Groups/groups.xml
 
-    electrical_circuit: str = (
-        path_to_preprocessing / "ElectricalCircuit" / "circuit.txt"
-    ).read_text()
+    electrical_circuit: str = (path_to_preprocessing / "ElectricalCircuit" / "circuit.txt").read_text()
     # \Preprocessing\ElectricalCircuit\circuit.txt
 
-    return SimulationPreprocessing(
-        model=model, groups=groups, electrical_circuit=electrical_circuit
-    )
+    return SimulationPreprocessing(model=model, groups=groups, electrical_circuit=electrical_circuit)
 
 
 def get_simulation_results(path_to_results: Path) -> SimulationResults:
@@ -54,15 +48,11 @@ def get_simulation_results(path_to_results: Path) -> SimulationResults:
     )
     # List of instruments from \Simulations\Run1\DefaultInstruments
 
-    user_instruments: list[UserInstrument] = get_user_instruments(
-        path_to_results / "UserInstruments"
-    )
+    user_instruments: list[UserInstrument] = get_user_instruments(path_to_results / "UserInstruments")
     # List of instruments from \Simulations\Run1\UserInstruments
 
     global_parameters = dictionary_from_list_in_xml_node(
-        ET.parse(
-            path_to_results / "GlobalParameters" / "globalParameters.xml"
-        ).getroot()
+        ET.parse(path_to_results / "GlobalParameters" / "globalParameters.xml").getroot()
     )
     # \Simulations\Run1\GlobalParameters
 
@@ -71,9 +61,7 @@ def get_simulation_results(path_to_results: Path) -> SimulationResults:
     )
     # \Simulations\Run1\NumKernel\Output
 
-    monitored_data_fields = (
-        None  # TODO I think the data can be more easily gotten from numerical kernel
-    )
+    monitored_data_fields = None  # TODO I think the data can be more easily gotten from numerical kernel
 
     extracted_data_fields: ExtractedDataFields = get_extracted_datafields(
         path_to_results / "OutputFolder" / "DataFieldExtracted"
@@ -105,13 +93,9 @@ def get_groups(path: Path) -> list[Group]:
                 Group(
                     name=get_text_of_a_child(children, "name"),
                     SPISid=get_text_of_a_child(children, "id"),
-                    GMSHid=get_text_of_a_child(
-                        get_child(children, "linkedMeshMaskIds"), "int"
-                    ),
+                    GMSHid=get_text_of_a_child(get_child(children, "linkedMeshMaskIds"), "int"),
                     type=get_text_of_a_child(children, "type"),
-                    properties=parsePropertiesList(
-                        get_child(children, "propertiesList")
-                    ),
+                    properties=parsePropertiesList(get_child(children, "propertiesList")),
                 )
             )
         else:
@@ -194,9 +178,7 @@ def dictionary_from_list_in_xml_node(
         iterable = node.find("list")
 
     if iterable == None:
-        raise RuntimeError(
-            "Input node doesn't have a child named list, nor is itself a list"
-        )
+        raise RuntimeError("Input node doesn't have a child named list, nor is itself a list")
 
     result: dict[str, str | int | float | bool] = {}
     for el in iterable:
@@ -212,48 +194,33 @@ def dictionary_from_list_in_xml_node(
             case "int":
                 value = int(get_text_of_a_child(el, "valueAsInt"))
             case "bool":
-                value = (
-                    get_text_of_a_child(el, "valueAsBoolean") == "true"
-                )  # TODO check if correct
+                value = get_text_of_a_child(el, "valueAsBoolean") == "true"  # TODO check if correct
                 print("CHECK IF FOLLOWING 2 LINES ARE EQUAL")
                 print(get_text_of_a_child(el, "valueAsBoolean"))
                 print(value)
             case "String":
                 value = str(get_text_of_a_child(el, "valueAsString"))
             case _:
-                raise RuntimeError(
-                    "Undefined type in XML - " + get_text_of_a_child(el, "typeAString")
-                )
+                raise RuntimeError("Undefined type in XML - " + get_text_of_a_child(el, "typeAString"))
         result[key] = value
     return result
 
 
-def get_numerical_kernel_output(
-    file_path: Path, instruments: list[UserInstrument]
-) -> NumericalResults:
+def get_numerical_kernel_output(file_path: Path, instruments: list[UserInstrument]) -> NumericalResults:
     resulting_particle_detectors: list[ParticleDetector] = []
     for instrument in instruments:
-        resulting_particle_detectors.append(
-            get_particle_detector(file_path, instrument)
-        )
+        resulting_particle_detectors.append(get_particle_detector(file_path, instrument))
 
     return NumericalResults(
         emitted_currents=load_time_series(file_path / "emittedCurrents.txt"),
         number_of_superparticles=get_number_of_superparticles(file_path),
         particle_detectors=resulting_particle_detectors,
-        time_steps=load_time_series(
-            file_path / "Simulation_Control_-_time_steps_(s_._s)__TimeSteps.txt"
-        ),
-        spis_log=(file_path / "SpisNum.log").read_text(
-            encoding="utf_8", errors="backslashreplace"
-        ),
-        total_current=load_time_series(
-            file_path / "Total_current_on_spacecraft_surface._SCTotalCurrent.txt"
-        ),
+        time_steps=load_time_series(file_path / "Simulation_Control_-_time_steps_(s_._s)__TimeSteps.txt"),
+        spis_log=(file_path / "SpisNum.log").read_text(encoding="utf_8", errors="backslashreplace"),
+        total_current=load_time_series(file_path / "Total_current_on_spacecraft_surface._SCTotalCurrent.txt"),
         collected_currents=load_time_series(file_path / "collectedCurrents.txt"),
         surface_potential=load_time_series(
-            file_path
-            / "Average_surface_potential_of_node_0_(V_,_s)__ElecNode0_Potential.txt"
+            file_path / "Average_surface_potential_of_node_0_(V_,_s)__ElecNode0_Potential.txt"
         ),
     )
 
@@ -267,9 +234,7 @@ def get_particle_detector(path: Path, instrument: UserInstrument) -> ParticleDet
         differential_flux_2d=ordered_list_of_distribution2D(
             path, name + "_2D_DifferentialFlux_at_t=", "s.txt"
         ),
-        differential_flux_mesh=ordered_list_of_meshes(
-            path, name + "_3V_Differential_Flux_at_t=", "s.msh"
-        ),
+        differential_flux_mesh=ordered_list_of_meshes(path, name + "_3V_Differential_Flux_at_t=", "s.msh"),
         distribution_function_mesh=ordered_list_of_meshes(
             path, name + "_3V_Distribution_Function_at_t=", "s.msh"
         ),
@@ -279,48 +244,30 @@ def get_particle_detector(path: Path, instrument: UserInstrument) -> ParticleDet
         angular2d_differential_flux=ordered_list_of_distribution2D(
             path, name + "_Angular2D_DifferentialFlux_at_t=", "s.txt"
         ),
-        angular2d_function=ordered_list_of_distribution2D(
-            path, name + "_Angular2DF_at_t=", "s.txt"
-        ),
-        computationalOctree=ordered_list_of_meshes(
-            path, name + "_computationalOctree_Time", "s.msh"
-        ),
+        angular2d_function=ordered_list_of_distribution2D(path, name + "_Angular2DF_at_t=", "s.txt"),
+        computationalOctree=ordered_list_of_meshes(path, name + "_computationalOctree_Time", "s.msh"),
         differential_flux_and_energy_df=ordered_list_of_distribution1D(
             path, name + "_Differential_Flux_and_Energy_DF_at_t=", "s.txt"
         ),
-        initial_angular2df=ordered_list_of_distribution2D(
-            path, name + "_Initial_Angular2DF_at_t=", "s.txt"
-        ),
+        initial_angular2df=ordered_list_of_distribution2D(path, name + "_Initial_Angular2DF_at_t=", "s.txt"),
         initial_velocity_2df=ordered_list_of_distribution2D(
             path, name + "_Initial_Velocity2DF_at_t=", "s.txt"
         ),
         moment=ordered_list_of_Moments(path, name + "_Moment_at_", "s.txt"),
-        particle_list=ordered_list_of_particleLists(
-            path, name + "_Particle_List_at_", "s.txt"
-        ),
-        velocity_2df=ordered_list_of_distribution2D(
-            path, name + "_Velocity2DF_at_t=", "s.txt"
-        ),
+        particle_list=ordered_list_of_particleLists(path, name + "_Particle_List_at_", "s.txt"),
+        velocity_2df=ordered_list_of_distribution2D(path, name + "_Velocity2DF_at_t=", "s.txt"),
     )
 
 
-def get_files_matching_start_and_end(
-    path: Path, start: str, end: str
-) -> typing.Iterable[Path]:
+def get_files_matching_start_and_end(path: Path, start: str, end: str) -> typing.Iterable[Path]:
     return path.glob(start + "*" + end)
 
 
-def ordered_list_of_meshes(
-    path: Path, start_of_file_name: str, end_of_file_name: str
-) -> list[Mesh]:
+def ordered_list_of_meshes(path: Path, start_of_file_name: str, end_of_file_name: str) -> list[Mesh]:
     result: list[Mesh] = []
-    for i in get_files_matching_start_and_end(
-        path, start_of_file_name, end_of_file_name
-    ):
+    for i in get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name):
         mesh = load_mesh(i)
-        mesh.time = float(
-            i.name.replace(start_of_file_name, "").replace(end_of_file_name, "")
-        )
+        mesh.time = float(i.name.replace(start_of_file_name, "").replace(end_of_file_name, ""))
         result.append(mesh)
 
     result.sort(key=lambda mesh: (mesh.time is None, mesh.time))
@@ -339,30 +286,20 @@ def ordered_list_of_distribution2D(
     path: Path, start_of_file_name: str, end_of_file_name: str
 ) -> list[Distribution2D]:
     result: list[Distribution2D] = []
-    for i in get_files_matching_start_and_end(
-        path, start_of_file_name, end_of_file_name
-    ):
+    for i in get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name):
         distribution = load_distribution2d(i)
-        distribution.time = float(
-            i.name.replace(start_of_file_name, "").replace(end_of_file_name, "")
-        )
+        distribution.time = float(i.name.replace(start_of_file_name, "").replace(end_of_file_name, ""))
         result.append(distribution)
 
     result.sort(key=lambda distribution: (distribution.time is None, distribution.time))
     return result
 
 
-def ordered_list_of_Moments(
-    path: Path, start_of_file_name: str, end_of_file_name: str
-) -> list[Moments]:
+def ordered_list_of_Moments(path: Path, start_of_file_name: str, end_of_file_name: str) -> list[Moments]:
     result: list[Moments] = []
-    for i in get_files_matching_start_and_end(
-        path, start_of_file_name, end_of_file_name
-    ):
+    for i in get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name):
         moments = load_moments(i)
-        moments.time = float(
-            i.name.replace(start_of_file_name, "").replace(end_of_file_name, "")
-        )
+        moments.time = float(i.name.replace(start_of_file_name, "").replace(end_of_file_name, ""))
         result.append(moments)
 
     result.sort(key=lambda moments: (moments.time is None, moments.time))
@@ -381,25 +318,19 @@ def load_moments(path: Path) -> Moments:
         data = file.readlines()
 
     result["Moment of the distribution function: Density"] = float(data[2])
-    result[
-        "Moment of the distribution function: Velocity in GMSH frame"
-    ] = string_to_vec(data[4])
+    result["Moment of the distribution function: Velocity in GMSH frame"] = string_to_vec(data[4])
     result["Moment of the distribution function: Mean energy"] = float(data[6])
 
-    result[
-        "Moment of the flux distribution function at the detector surface : Flux"
-    ] = float(data[10].replace("m-1.s-2 ", ""))
+    result["Moment of the flux distribution function at the detector surface : Flux"] = float(
+        data[10].replace("m-1.s-2 ", "")
+    )
     result[
         "Moment of the flux distribution function at the detector surface: Velocity in GMSH frame"
     ] = string_to_vec(data[12])
-    result[
-        "Moment of the flux distribution function at the detector surface: Mean energy"
-    ] = float(data[14])
+    result["Moment of the flux distribution function at the detector surface: Mean energy"] = float(data[14])
 
     result["Moment of the initial distribution function: Density"] = float(data[18])
-    result[
-        "Moment of the initial distribution function: Velocity in GMSH frame"
-    ] = string_to_vec(data[20])
+    result["Moment of the initial distribution function: Velocity in GMSH frame"] = string_to_vec(data[20])
     result["Moment of the initial distribution function: Mean energy"] = float(data[22])
 
     return Moments(time=None, data=result)
@@ -409,13 +340,9 @@ def ordered_list_of_distribution1D(
     path: Path, start_of_file_name: str, end_of_file_name: str
 ) -> list[Distribution1D]:
     result: list[Distribution1D] = []
-    for i in get_files_matching_start_and_end(
-        path, start_of_file_name, end_of_file_name
-    ):
+    for i in get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name):
         distribution = load_distribution1d(i)
-        distribution.time = float(
-            i.name.replace(start_of_file_name, "").replace(end_of_file_name, "")
-        )
+        distribution.time = float(i.name.replace(start_of_file_name, "").replace(end_of_file_name, ""))
         result.append(distribution)
 
     result.sort(key=lambda distribution: (distribution.time is None, distribution.time))
@@ -487,9 +414,7 @@ def load_distribution2d(path: Path) -> Distribution2D:
                 data[:, y, z] = x[:]
             file.readline()
 
-    if (
-        np.count_nonzero(data) / data.size <= 0.1
-    ):  # if data is mostly empty we convert it to a sparse matrix
+    if np.count_nonzero(data) / data.size <= 0.1:  # if data is mostly empty we convert it to a sparse matrix
         data = sparse.COO.from_numpy(data)  # type:ignore
 
     result = xarray.DataArray(data=data, dims=dims, coords=coords_dic)
@@ -500,18 +425,12 @@ def ordered_list_of_particleLists(
     path: Path, start_of_file_name: str, end_of_file_name: str
 ) -> list[ParticleList]:
     result: list[ParticleList] = []
-    for i in get_files_matching_start_and_end(
-        path, start_of_file_name, end_of_file_name
-    ):
+    for i in get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name):
         particleLists = load_particle_list(i)
-        particleLists.time = float(
-            i.name.replace(start_of_file_name, "").replace(end_of_file_name, "")
-        )
+        particleLists.time = float(i.name.replace(start_of_file_name, "").replace(end_of_file_name, ""))
         result.append(particleLists)
 
-    result.sort(
-        key=lambda particleLists: (particleLists.time is None, particleLists.time)
-    )
+    result.sort(key=lambda particleLists: (particleLists.time is None, particleLists.time))
     return result
 
 
@@ -579,9 +498,7 @@ def get_extracted_datafields(path: Path) -> ExtractedDataFields:
     spacecraft_vertex = load_mesh(path / "Spacecraft_VERTEX.msh")
     volume_vertex = load_mesh(path / "Volume_VERTEX.msh")
 
-    spacecraft_mesh_file = list(
-        (path / "../../../../Preprocessing/Mesh/GeometricalSystem").glob("*.msh")
-    )[0]
+    spacecraft_mesh_file = list((path / "../../../../Preprocessing/Mesh/GeometricalSystem").glob("*.msh"))[0]
     spacecraft_mesh_name = spacecraft_mesh_file.name
     spacecraft_mesh = load_mesh(spacecraft_mesh_file)
 
@@ -613,8 +530,7 @@ def get_extracted_datafields(path: Path) -> ExtractedDataFields:
         elif mask.attrs["meshURI"] == "Volume_VERTEX.msh":
             mesh = volume_vertex
         elif mask.attrs["meshURI"] == (
-            "../../../../Preprocessing/Mesh/GeometricalSystem/"
-            + str(spacecraft_mesh_name)
+            "../../../../Preprocessing/Mesh/GeometricalSystem/" + str(spacecraft_mesh_name)
         ):
             mesh = spacecraft_mesh
         elif display_vol_mesh_name == mask.attrs["meshURI"]:
@@ -635,9 +551,7 @@ def get_extracted_datafields(path: Path) -> ExtractedDataFields:
         # https://stackoverflow.com/questions/74693202/add-point-data-to-mesh-and-save-as-vtu
         for _, da in data.data_vars.items():  # type:ignore
             cur_data_array: xarray.DataArray = da  # type:ignore
-            add_data_to_mesh(
-                da=cur_data_array, mesh=mesh, path_to_property=i, mask=mask
-            )  # type:ignore
+            add_data_to_mesh(da=cur_data_array, mesh=mesh, path_to_property=i, mask=mask)  # type:ignore
             continue
 
     return ExtractedDataFields(
@@ -649,9 +563,7 @@ def get_extracted_datafields(path: Path) -> ExtractedDataFields:
     )
 
 
-def add_data_to_mesh(
-    da: xarray.DataArray, mesh: Mesh, path_to_property: Path, mask: xarray.Dataset
-):
+def add_data_to_mesh(da: xarray.DataArray, mesh: Mesh, path_to_property: Path, mask: xarray.Dataset):
     try:
         cur_data = da.data
         if len(cur_data) == mesh.mesh.number_of_points:
@@ -660,9 +572,7 @@ def add_data_to_mesh(
             mesh.mesh.cell_data[path_to_property.stem] = cur_data
         # this last option shouldn't run
         else:
-            log.warn(
-                f"{str(path_to_property.stem)} was saved as field data. This data can't be plotted"
-            )
+            log.warn(f"{str(path_to_property.stem)} was saved as field data. This data can't be plotted")
             mesh.mesh.field_data[path_to_property.stem] = cur_data
         mesh.properties.append(path_to_property.stem)
         log.debug("Loaded " + path_to_property.stem)
@@ -680,12 +590,8 @@ def check_mask_is_identity(dataset: xarray.Dataset, mask_name: str) -> bool:
     return mask_as_series.is_monotonic_increasing
 
 
-def reshape_data_according_to_mask(
-    data: xarray.Dataset, mask: xarray.Dataset
-) -> xarray.DataArray:
-    mask_as_series: list[int] = (
-        mask["meshElmentId"].to_series().to_list()  # type:ignore
-    )
+def reshape_data_according_to_mask(data: xarray.Dataset, mask: xarray.Dataset) -> xarray.DataArray:
+    mask_as_series: list[int] = mask["meshElmentId"].to_series().to_list()  # type:ignore
 
     data_array: xarray.DataArray | None = None
     for _, j in data.data_vars.items():
@@ -695,9 +601,7 @@ def reshape_data_according_to_mask(
 
     if abs(data_array.min() - data_array.max()) < np.finfo(float).eps * 4:
         uri = str(data.attrs["meshMaskURI"])
-        log.debug(
-            f"Not permuting according to {uri} because it's identically almost zero."
-        )
+        log.debug(f"Not permuting according to {uri} because it's identically almost zero.")
         return data_array
 
     if data.attrs["meshMaskURI"] == "surfFlagSC-FACEMask.nc":  # TODO
@@ -705,9 +609,7 @@ def reshape_data_according_to_mask(
         log.error(f"Not permuting according to {uri}, not implemented yet.")
         return data_array
 
-    np_data_array: numpy.typing.NDArray[
-        np.float_
-    ] = data_array.to_numpy()  # type:ignore
+    np_data_array: numpy.typing.NDArray[np.float_] = data_array.to_numpy()  # type:ignore
 
     assert np_data_array is not None
 
