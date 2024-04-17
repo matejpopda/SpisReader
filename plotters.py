@@ -7,6 +7,7 @@ from simulation import *
 import pyvista.core.dataset
 from helpers import allow_mesh, check_and_create_folder
 import logging 
+from dataclasses import dataclass
 import math
 import fnmatch
 log = logging.getLogger(__name__)
@@ -18,12 +19,7 @@ ORIGIN_VECTOR = (0,0,0)
 DEFAULT_PATH = Path("./temp")
 
 
-# For timeseries 
-    # Draw it
-
-# Better access for some stuff in the simulation through @property
-
-
+@dataclass(frozen=True)
 class Directions:
     x_plus  = (1,0,0)
     x_minus = (-1, 0, 0)
@@ -32,6 +28,8 @@ class Directions:
     z_plus  = (0,0,1)
     z_minus = (0,0,-1)
 
+
+@dataclass(frozen=True)
 class PlaneNormals:
     XY = (0,0,1)
     XZ = (0,1,0)
@@ -293,4 +291,3 @@ def plot_final_quantities(result: Simulation, path:Path=DEFAULT_PATH):
     log.info("Done plotting final quantities")
 
 
-#TODO: u clim nastavení pomocí quantilů
