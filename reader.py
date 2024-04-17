@@ -101,7 +101,6 @@ def get_groups(path: Path) -> list[Group]:
     groupList = tree.getroot()[0]
     for children in groupList:
         if children.find("type") is not None:
-
             result.append(
                 Group(
                     name=get_text_of_a_child(children, "name"),
@@ -382,9 +381,9 @@ def load_moments(path: Path) -> Moments:
         data = file.readlines()
 
     result["Moment of the distribution function: Density"] = float(data[2])
-    result["Moment of the distribution function: Velocity in GMSH frame"] = (
-        string_to_vec(data[4])
-    )
+    result[
+        "Moment of the distribution function: Velocity in GMSH frame"
+    ] = string_to_vec(data[4])
     result["Moment of the distribution function: Mean energy"] = float(data[6])
 
     result[
@@ -398,9 +397,9 @@ def load_moments(path: Path) -> Moments:
     ] = float(data[14])
 
     result["Moment of the initial distribution function: Density"] = float(data[18])
-    result["Moment of the initial distribution function: Velocity in GMSH frame"] = (
-        string_to_vec(data[20])
-    )
+    result[
+        "Moment of the initial distribution function: Velocity in GMSH frame"
+    ] = string_to_vec(data[20])
     result["Moment of the initial distribution function: Mean energy"] = float(data[22])
 
     return Moments(time=None, data=result)
@@ -576,7 +575,6 @@ def load_pickle(path: Path) -> Simulation:
 
 
 def get_extracted_datafields(path: Path) -> ExtractedDataFields:
-
     spacecraft_face = load_mesh(path / "Spacecraft_FACE.msh")
     spacecraft_vertex = load_mesh(path / "Spacecraft_VERTEX.msh")
     volume_vertex = load_mesh(path / "Volume_VERTEX.msh")
@@ -595,7 +593,6 @@ def get_extracted_datafields(path: Path) -> ExtractedDataFields:
     time_series: list[Path] = []  # We are not doing anything with this, for now
 
     for i in path.glob("*.nc"):
-
         # Following lines filter out time series and masks
         if "time" in i.name:
             time_series.append(i)
@@ -708,9 +705,9 @@ def reshape_data_according_to_mask(
         log.error(f"Not permuting according to {uri}, not implemented yet.")
         return data_array
 
-    np_data_array: numpy.typing.NDArray[np.float_] = (
-        data_array.to_numpy()  # type:ignore
-    )
+    np_data_array: numpy.typing.NDArray[
+        np.float_
+    ] = data_array.to_numpy()  # type:ignore
 
     assert np_data_array is not None
 

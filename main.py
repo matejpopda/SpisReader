@@ -7,7 +7,6 @@ import logging as log
 
 @helpers.log_function_entry_and_exit
 def main():
-
     path = (
         pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5")
         / "CS_01"

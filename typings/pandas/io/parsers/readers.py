@@ -94,4 +94,5 @@ def read_csv(
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame: ...
+) -> DataFrame:
+    ...

@@ -61,7 +61,6 @@ def interactive_plot_physical_mesh(mesh: DataSet) -> None:
 
 @allow_mesh
 def interactive_plot_mesh(mesh: DataSet, property: str) -> None:
-
     plotter = Plotter()
     plotter.add_mesh(mesh, scalars=property)  # type: ignore
     plotter.show()  # type: ignore
@@ -99,7 +98,6 @@ def slice_and_save(
     screenshot_size: int = SCREENSHOT_SIZE,
     clim: tuple[float, float] | None = None,
 ) -> None:
-
     check_and_create_folder(path)
     filename = _default_filename(filename=filename, property=property)
 
@@ -203,7 +201,6 @@ def glob_properties(
     ignore_num_kernel: bool = True,
     exclude: str | None = None,
 ) -> list[tuple[Mesh, "str"]]:
-
     result: list[tuple[Mesh, "str"]] = []
     if isinstance(input, Mesh):
         strings = fnmatch.filter(input.properties, property)

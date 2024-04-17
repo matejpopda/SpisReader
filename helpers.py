@@ -17,7 +17,6 @@ P = ParamSpec("P")
 
 
 def default_log_config():
-
     formater = logging.Formatter(
         fmt="%(asctime)s - %(levelname)s:%(name)s - %(module)s - %(funcName)s -  %(message)s"
     )
