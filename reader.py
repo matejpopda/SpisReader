@@ -475,8 +475,6 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
         mask : xarray.Dataset = xarray.open_dataset(i / ".." / data.attrs["meshMaskURI"])  
         mesh: Mesh
 
-
-
         if mask.attrs["meshURI"] == "Spacecraft_FACE.msh":
             mesh = spacecraft_face
         elif mask.attrs["meshURI"] == "Spacecraft_VERTEX.msh":
@@ -491,8 +489,6 @@ def get_extracted_datafields(path:Path) -> ExtractedDataFields:
             log.error("Trying to add data to an unknown mesh, skipping")
             log.error("The mesh name is " + str(mask.attrs["meshURI"]))
             continue
-
-
         
         if not check_mask_is_identity(mask, data.attrs["meshMaskURI"]):
             log.debug(f"Mask {data.attrs["meshMaskURI"]} was not an identity")
@@ -544,9 +540,6 @@ def check_mask_is_identity(dataset: xarray.Dataset, mask_name:str) -> bool:
 def reshape_data_according_to_mask(data:xarray.Dataset, mask:xarray.Dataset) -> xarray.DataArray:
     mask_as_series: list[int] = mask["meshElmentId"].to_series().to_list()
     
-
-
-
     data_array: xarray.DataArray|None = None
     for _, j in data.data_vars.items():
         data_array = j
@@ -554,27 +547,16 @@ def reshape_data_according_to_mask(data:xarray.Dataset, mask:xarray.Dataset) -> 
     assert data_array is not None
 
     if abs(data_array.min() - data_array.max()) < np.finfo(float).eps*4:
-        log.info(f"Not permuting according to {data.attrs["meshMaskURI"]} because it's identically almost zero.")
+        log.debug(f"Not permuting according to {data.attrs["meshMaskURI"]} because it's identically almost zero.")
         return data_array
     
     if data.attrs["meshMaskURI"] == "surfFlagSC-FACEMask.nc": # TODO
         log.error(f"Not permuting according to {data.attrs["meshMaskURI"]}, not implemented yet.")
         return data_array
 
-
     data_array = data_array.to_numpy()
-    
-    # permutation_dict = dict(enumerate(mask_as_series))
-
 
     assert data_array is not None
-    # def transform(entry: float) -> float:
-    #     return permutation_dict[entry]
-    # transform = np.vectorize(transform)
-
-    # result = transform(data_array)
-
-
 
     inverted_indices = [0] * len(mask_as_series)
 
@@ -590,8 +572,8 @@ def reshape_data_according_to_mask(data:xarray.Dataset, mask:xarray.Dataset) -> 
     return xarray.DataArray(result)
 
 
-def load_simulation(path: Path, *, processed_name:str="processed_simulation.pkl", force_raw_processing:bool = False) -> Simulation:
-    if  force_raw_processing or not (path/processed_name).exists():
+def load_simulation(path: Path, *, processed_name:str="processed_simulation.pkl", force_processing:bool = False) -> Simulation:
+    if  force_processing or not (path/processed_name).exists():
         save_as_pickle(load_from_SPIS(path), path /processed_name)
 
     result = load_pickle(path /processed_name)
