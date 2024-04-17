@@ -1,9 +1,9 @@
-
 """
 Module contains tools for processing files into DataFrames or other objects
 
 GH#48849 provides a convenient way of deprecating keyword arguments
 """
+
 from __future__ import annotations
 
 import csv
@@ -13,7 +13,6 @@ from typing import (
     Callable,
     Literal,
 )
-
 
 
 from pandas._libs import lib
@@ -60,10 +59,9 @@ def read_csv(
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values: Hashable
-    | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
-    | None = ...,
+    na_values: (
+        Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+    ) = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool | lib.NoDefault = ...,
@@ -89,12 +87,11 @@ def read_csv(
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect | None = ...,
-    on_bad_lines: Literal['error', 'warn', 'skip']=...,
+    on_bad_lines: Literal["error", "warn", "skip"] = ...,
     delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
