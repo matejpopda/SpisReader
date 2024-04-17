@@ -340,9 +340,7 @@ def make_gif_xz_slice(
         max_val = max(cur_max, max_val)
 
     for mesh, property in input:
-        mesh = mesh.mesh.slice(
-            normal=PlaneNormals.XZ, origin=slice_origin
-        )  # type:ignore
+        mesh = mesh.mesh.slice(normal=PlaneNormals.XZ, origin=slice_origin)  # type:ignore
         plotter.add_mesh(mesh, scalars=property, clim=(min_val, max_val), style="surface")  # type: ignore
         plotter.enable_parallel_projection()  # type: ignore
         plotter.camera_position = PlaneNormals.XZ

@@ -31,9 +31,7 @@ if TYPE_CHECKING:
         str,  # no nice typing support for custom backends
         None,
     ]
-    T_NetcdfTypes = Literal[
-        "NETCDF4", "NETCDF4_CLASSIC", "NETCDF3_64BIT", "NETCDF3_CLASSIC"
-    ]
+    T_NetcdfTypes = Literal["NETCDF4", "NETCDF4_CLASSIC", "NETCDF3_64BIT", "NETCDF3_CLASSIC"]
 
 
 def open_dataset(
