@@ -55,4 +55,5 @@ def open_dataset(
     from_array_kwargs: dict[str, Any] | None = None,
     backend_kwargs: dict[str, Any] | None = None,
     **kwargs: Any,
-) -> Dataset: ...
+) -> Dataset:
+    ...
