@@ -12,8 +12,6 @@ import numpy as np
 import xarray
 import sparse
 import numpy.typing
-from copy import deepcopy
-import functools
 from helpers import LogFileOpening
 from simulation import *
 
@@ -538,7 +536,7 @@ def check_mask_is_identity(dataset: xarray.Dataset, mask_name:str) -> bool:
     return mask_as_series.is_monotonic_increasing
 
 def reshape_data_according_to_mask(data:xarray.Dataset, mask:xarray.Dataset) -> xarray.DataArray:
-    mask_as_series: list[int] = mask["meshElmentId"].to_series().to_list()
+    mask_as_series: list[int] = mask["meshElmentId"].to_series().to_list() # type:ignore
     
     data_array: xarray.DataArray|None = None
     for _, j in data.data_vars.items():
@@ -554,9 +552,9 @@ def reshape_data_according_to_mask(data:xarray.Dataset, mask:xarray.Dataset) -> 
         log.error(f"Not permuting according to {data.attrs["meshMaskURI"]}, not implemented yet.")
         return data_array
 
-    data_array = data_array.to_numpy()
+    np_data_array:numpy.typing.NDArray[np.float_] = data_array.to_numpy() # type:ignore
 
-    assert data_array is not None
+    assert np_data_array is not None
 
     inverted_indices = [0] * len(mask_as_series)
 
@@ -566,8 +564,8 @@ def reshape_data_according_to_mask(data:xarray.Dataset, mask:xarray.Dataset) -> 
 
     mask_as_series = inverted_indices
  
-    result = [data_array[i] for i in mask_as_series]
-    result = np.array(result)
+    result = [np_data_array[i] for i in mask_as_series]
+    result = np.array(result) 
 
     return xarray.DataArray(result)
 
