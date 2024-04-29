@@ -1,4 +1,5 @@
 from pathlib import Path
+import pyvista.core.pyvista_ndarray
 import pyvista.plotting
 from pyvista.plotting.plotter import Plotter
 from pyvista.core.dataset import DataSet
@@ -7,8 +8,9 @@ import pyvista.core.dataset
 from helpers import allow_mesh, check_and_create_folder
 import logging
 from dataclasses import dataclass
-import math
 import fnmatch
+import numpy as np 
+import numpy.typing as np_typing
 
 log = logging.getLogger(__name__)
 
@@ -47,6 +49,45 @@ def _default_filename(filename: str | None, property: str) -> str:
         filename = property + ".png"
     return filename
 
+def _calculate_percentile(meshes: list[DataSet]|DataSet|list[tuple[DataSet, str]]| DataSet|list[tuple[Mesh, str]], property:str|None = None, percentile:float = 0.05) -> tuple[float,float]:
+    result: list[tuple[DataSet, str]] = []
+    
+    if isinstance(meshes, DataSet):
+        if property is None:
+            raise RuntimeError(f"Didn't specify property")
+        result = [(meshes, property)]
+    else:
+        if isinstance(meshes[0], DataSet):
+            if property is None:
+                raise RuntimeError(f"Didn't specify property")
+            for mesh in meshes:
+                assert isinstance(mesh, DataSet)
+                result.append((mesh, property))
+        elif isinstance(meshes[0], tuple): # is tuple # type:ignore
+
+            for i in meshes:
+                assert not isinstance(i, DataSet)
+
+            if all(not isinstance(x, DataSet) and isinstance(x[0], Mesh) for x in meshes):
+                for mesh, local_property in meshes: #type: ignore
+                    assert isinstance(local_property, str)
+                    assert isinstance(mesh, Mesh)
+                    result.append((mesh.mesh, local_property))
+            elif all(not isinstance(x, DataSet) and isinstance(x[0], DataSet) for x in meshes):
+                result = meshes # type:ignore
+            else:
+                raise RuntimeError("Unknown input")
+        else:
+            raise RuntimeError("Unknown input")
+
+    all_values:np_typing.NDArray[np.float_] = np.array([])
+    for mesh, local_property in result:
+        array: np_typing.NDArray[np.float_] = np.array(mesh.get_array(local_property))  #type: ignore
+        all_values = np.concatenate((all_values, array), axis=None) #type: ignore
+    
+    temp = (np.percentile(all_values, int(percentile*100)), np.percentile(all_values, abs(int(percentile*100) - 100)))
+
+    return (min(temp), max(temp)) #type: ignore
 
 @allow_mesh
 def interactive_plot_orth_slice(mesh: DataSet, property: str) -> None:
@@ -96,12 +137,17 @@ def slice_and_save(
     path: Path = DEFAULT_PATH,
     filename: str | None = None,
     screenshot_size: int = SCREENSHOT_SIZE,
-    clim: tuple[float, float] | None = None,
+    percentile: float|None = 0.05,
 ) -> None:
     check_and_create_folder(path)
     filename = _default_filename(filename=filename, property=property)
 
     path = path / filename
+
+    if percentile is not None:
+        clim = _calculate_percentile(mesh, property=property, percentile=percentile)
+    else:
+        clim = None
 
     plotter = pyvista.plotting.Plotter(off_screen=True)  # type: ignore
     mesh = mesh.slice(normal=PlaneNormals.XZ, origin=slice_origin)  # type:ignore
@@ -122,7 +168,7 @@ def xz_slice(
     path: Path = DEFAULT_PATH,
     filename: str | None = None,
     screenshot_size: int = SCREENSHOT_SIZE,
-    clim: tuple[float, float] | None = None,
+    percentile: float|None = 0.05,
 ) -> None:
     normal = PlaneNormals.XZ
     return slice_and_save(
@@ -133,7 +179,7 @@ def xz_slice(
         path=path,
         filename=filename,
         screenshot_size=screenshot_size,
-        clim=clim,
+        percentile=percentile,
     )
 
 
@@ -146,7 +192,7 @@ def xy_slice(
     path: Path = DEFAULT_PATH,
     filename: str | None = None,
     screenshot_size: int = SCREENSHOT_SIZE,
-    clim: tuple[float, float] | None = None,
+    percentile: float|None = 0.05,
 ) -> None:
     normal = PlaneNormals.XY
     return slice_and_save(
@@ -157,7 +203,7 @@ def xy_slice(
         path=path,
         filename=filename,
         screenshot_size=screenshot_size,
-        clim=clim,
+        percentile=percentile,
     )
 
 
@@ -170,7 +216,7 @@ def yz_slice(
     path: Path = DEFAULT_PATH,
     filename: str | None = None,
     screenshot_size: int = SCREENSHOT_SIZE,
-    clim: tuple[float, float] | None = None,
+    percentile: float|None = 0.05,
 ) -> None:
     normal = PlaneNormals.YZ
     return slice_and_save(
@@ -181,7 +227,7 @@ def yz_slice(
         path=path,
         filename=filename,
         screenshot_size=screenshot_size,
-        clim=clim,
+        percentile=percentile,
     )
 
 
@@ -325,6 +371,7 @@ def make_gif_xz_slice(
     slice_origin: vector = ORIGIN_VECTOR,
     path: Path = DEFAULT_PATH,
     screenshot_size: int = SCREENSHOT_SIZE,
+    percentile: float|None = 0.05,
 ) -> None:
     if not fnmatch.fnmatch(filename, "*.gif"):
         filename = filename + ".gif"
@@ -333,7 +380,10 @@ def make_gif_xz_slice(
     plotter.open_gif(str(path / (filename)))  # type: ignore
     plotter.window_size = [plotter.window_size[0] * SCREENSHOT_SIZE, plotter.window_size[1] * SCREENSHOT_SIZE]  # type: ignore
 
-    min_val, max_val = math.inf, -math.inf
+
+
+    min_val, max_val = _calculate_percentile(input)
+
     for mesh, property in input:
         cur_min, cur_max = mesh.mesh.get_data_range(property)  # type: ignore
         min_val = min(cur_min, min_val)
@@ -364,7 +414,8 @@ def make_gif_surface_from_default_view(
     plotter.open_gif(str(path / (filename)))  # type: ignore
     plotter.window_size = [plotter.window_size[0] * SCREENSHOT_SIZE, plotter.window_size[1] * SCREENSHOT_SIZE]  # type: ignore
 
-    min_val, max_val = math.inf, -math.inf
+    min_val, max_val = _calculate_percentile(input)
+
     for mesh, property in input:
         cur_min, cur_max = mesh.mesh.get_data_range(property)  # type: ignore
         min_val = min(cur_min, min_val)
@@ -378,8 +429,8 @@ def make_gif_surface_from_default_view(
     plotter.close()
 
 
-def plot_final_quantities(result: Simulation, path: Path = DEFAULT_PATH):
+def plot_final_quantities(result: Simulation, path: Path = DEFAULT_PATH, *, percentile:float|None = None):
     log.info("Started plotting final quantities")
     for i, j in glob_properties(result, "*final*", exclude="*surf*"):
-        xz_slice(i, j, path=path)
+        xz_slice(i, j, path=path, percentile=percentile)
     log.info("Done plotting final quantities")
