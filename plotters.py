@@ -9,12 +9,11 @@ from helpers import allow_mesh, check_and_create_folder
 import logging
 from dataclasses import dataclass
 import fnmatch
-import numpy as np 
+import numpy as np
 import numpy.typing as np_typing
 from default_settings import Settings
 
 log = logging.getLogger(__name__)
-
 
 
 ORIGIN_VECTOR = (0, 0, 0)
@@ -48,9 +47,13 @@ def _default_filename(filename: str | None, property: str) -> str:
         filename = property + ".png"
     return filename
 
-def _calculate_percentile(meshes: list[DataSet]|DataSet|list[tuple[DataSet, str]]| DataSet|list[tuple[Mesh, str]], property:str|None = None, percentile:float|None = None) -> tuple[float,float]:
+
+def _calculate_percentile(
+    meshes: list[DataSet] | DataSet | list[tuple[DataSet, str]] | DataSet | list[tuple[Mesh, str]],
+    property: str | None = None,
+    percentile: float | None = None,
+) -> tuple[float, float]:
     result: list[tuple[DataSet, str]] = []
-    
 
     if percentile is None:
         percentile = Settings.percentile
@@ -66,31 +69,34 @@ def _calculate_percentile(meshes: list[DataSet]|DataSet|list[tuple[DataSet, str]
             for mesh in meshes:
                 assert isinstance(mesh, DataSet)
                 result.append((mesh, property))
-        elif isinstance(meshes[0], tuple): # is tuple # type:ignore
-
+        elif isinstance(meshes[0], tuple):  # is tuple # type:ignore
             for i in meshes:
                 assert not isinstance(i, DataSet)
 
             if all(not isinstance(x, DataSet) and isinstance(x[0], Mesh) for x in meshes):
-                for mesh, local_property in meshes: #type: ignore
+                for mesh, local_property in meshes:  # type: ignore
                     assert isinstance(local_property, str)
                     assert isinstance(mesh, Mesh)
                     result.append((mesh.mesh, local_property))
             elif all(not isinstance(x, DataSet) and isinstance(x[0], DataSet) for x in meshes):
-                result = meshes # type:ignore
+                result = meshes  # type:ignore
             else:
                 raise RuntimeError("Unknown input")
         else:
             raise RuntimeError("Unknown input")
 
-    all_values:np_typing.NDArray[np.float_] = np.array([])
+    all_values: np_typing.NDArray[np.float_] = np.array([])
     for mesh, local_property in result:
-        array: np_typing.NDArray[np.float_] = np.array(mesh.get_array(local_property))  #type: ignore
-        all_values = np.concatenate((all_values, array), axis=None) #type: ignore
-    
-    temp = (np.percentile(all_values, int(percentile*100)), np.percentile(all_values, abs(int(percentile*100) - 100)))
+        array: np_typing.NDArray[np.float_] = np.array(mesh.get_array(local_property))  # type: ignore
+        all_values = np.concatenate((all_values, array), axis=None)  # type: ignore
 
-    return (min(temp), max(temp)) #type: ignore
+    temp = (
+        np.percentile(all_values, int(percentile * 100)),
+        np.percentile(all_values, abs(int(percentile * 100) - 100)),
+    )
+
+    return (min(temp), max(temp))  # type: ignore
+
 
 @allow_mesh
 def interactive_plot_orth_slice(mesh: DataSet, property: str) -> None:
@@ -114,10 +120,10 @@ def interactive_plot_mesh(mesh: DataSet, property: str) -> None:
 def save_mesh(
     mesh: DataSet,
     property: str,
-    path: Path|None = None,
+    path: Path | None = None,
     filename: str | None = None,
     *,
-    screenshot_size: float|None = None,
+    screenshot_size: float | None = None,
     clim: tuple[float, float] | None = None,
 ) -> None:
     if screenshot_size is None:
@@ -142,13 +148,13 @@ def slice_and_save(
     normal: vector,
     *,
     slice_origin: vector = ORIGIN_VECTOR,
-    path: Path|None = None,
+    path: Path | None = None,
     filename: str | None = None,
-    screenshot_size: float|None = None,
-    percentile: float|None = 0.05,
+    screenshot_size: float | None = None,
+    percentile: float | None = 0.05,
 ) -> None:
     if path is None:
-        path = Settings.default_path 
+        path = Settings.default_path
 
     if screenshot_size is None:
         screenshot_size = Settings.screenshot_size
@@ -179,10 +185,10 @@ def xz_slice(
     property: str,
     *,
     slice_origin: vector = ORIGIN_VECTOR,
-    path: Path|None = None,
+    path: Path | None = None,
     filename: str | None = None,
-    screenshot_size: float|None = None,
-    percentile: float|None = None,
+    screenshot_size: float | None = None,
+    percentile: float | None = None,
 ) -> None:
     if path is None:
         path = Settings.default_path
@@ -210,10 +216,10 @@ def xy_slice(
     property: str,
     *,
     slice_origin: vector = ORIGIN_VECTOR,
-    path: Path|None = None,
+    path: Path | None = None,
     filename: str | None = None,
-    screenshot_size: float|None = None,
-    percentile: float|None = None,
+    screenshot_size: float | None = None,
+    percentile: float | None = None,
 ) -> None:
     if path is None:
         path = Settings.default_path
@@ -241,10 +247,10 @@ def yz_slice(
     property: str,
     *,
     slice_origin: vector = ORIGIN_VECTOR,
-    path: Path|None = None,
+    path: Path | None = None,
     filename: str | None = None,
-    screenshot_size: float|None = None,
-    percentile: float|None = None,
+    screenshot_size: float | None = None,
+    percentile: float | None = None,
 ) -> None:
     if percentile is None:
         percentile = Settings.percentile
@@ -403,11 +409,10 @@ def make_gif_xz_slice(
     filename: str,
     *,
     slice_origin: vector = ORIGIN_VECTOR,
-    path: Path|None = None,
-    screenshot_size: float|None = None,
-    percentile: float|None = None,
+    path: Path | None = None,
+    screenshot_size: float | None = None,
+    percentile: float | None = None,
 ) -> None:
-    
     if path is None:
         path = Settings.default_path
     if percentile is None:
@@ -421,8 +426,6 @@ def make_gif_xz_slice(
 
     plotter.open_gif(str(path / (filename)))  # type: ignore
     plotter.window_size = [plotter.window_size[0] * screenshot_size, plotter.window_size[1] * screenshot_size]  # type: ignore
-
-
 
     min_val, max_val = _calculate_percentile(input)
 
@@ -446,8 +449,8 @@ def make_gif_surface_from_default_view(
     filename: str,
     *,
     slice_origin: vector = ORIGIN_VECTOR,
-    path: Path|None = None,
-    screenshot_size: float|None = None,
+    path: Path | None = None,
+    screenshot_size: float | None = None,
 ) -> None:
     if path is None:
         path = Settings.default_path
@@ -476,7 +479,7 @@ def make_gif_surface_from_default_view(
     plotter.close()
 
 
-def plot_final_quantities(result: Simulation, path: Path|None = None, *, percentile:float|None = None):
+def plot_final_quantities(result: Simulation, path: Path | None = None, *, percentile: float | None = None):
     log.info("Started plotting final quantities")
     if percentile is None:
         percentile = Settings.percentile
