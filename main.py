@@ -6,6 +6,7 @@ import logging as log
 
 import default_settings
 
+
 @helpers.log_function_entry_and_exit
 def main():
     # path = pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5") / "CS_01"
@@ -19,7 +20,6 @@ def main():
     log.info("started plotting gif of size " + str(len(total_charge)))
     plotters.make_gif_xz_slice(total_charge, "total_charge")
     log.info("stopped plotting gif")
-
 
     total_charge = plotters.glob_properties(result, "improved_ions1_charge_density_at_t_=*")
     log.info("started plotting gif of size " + str(len(total_charge)))
