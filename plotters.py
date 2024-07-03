@@ -299,7 +299,7 @@ def glob_properties(
         for i in strings:
             if exclude is None or not fnmatch.fnmatch(i, exclude):
                 result.append((input, i))
-        
+
         return result
 
     if isinstance(input, Simulation):

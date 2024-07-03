@@ -280,8 +280,14 @@ def load_mesh(path: Path) -> Mesh:
     """Loads mesh from path, does not guarantee that time will not be None"""
     mesh = meshio.read(path, file_format="gmsh")
     properties: list[str] = [x for x in mesh.cell_data.keys()]
-    unloaded_properties: dict[str, pathlib.Path]= {}
-    return Mesh(time=None, mesh=pyvista.wrap(mesh), properties=properties, loadable_properties=unloaded_properties, name = path.stem)
+    unloaded_properties: dict[str, pathlib.Path] = {}
+    return Mesh(
+        time=None,
+        mesh=pyvista.wrap(mesh),
+        properties=properties,
+        loadable_properties=unloaded_properties,
+        name=path.stem,
+    )
 
 
 def ordered_list_of_distribution2D(
@@ -329,9 +335,9 @@ def load_moments(path: Path) -> Moments:
     result["Moment of the flux distribution function at the detector surface : Flux"] = float(
         data[10].replace("m-1.s-2 ", "")
     )
-    result[
-        "Moment of the flux distribution function at the detector surface: Velocity in GMSH frame"
-    ] = string_to_vec(data[12])
+    result["Moment of the flux distribution function at the detector surface: Velocity in GMSH frame"] = (
+        string_to_vec(data[12])
+    )
     result["Moment of the flux distribution function at the detector surface: Mean energy"] = float(data[14])
 
     result["Moment of the initial distribution function: Density"] = float(data[18])
@@ -463,7 +469,7 @@ def ordered_list_of_particleLists(
     for i in get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name):
         if default_settings.Settings.lazy_loading == True:
             particleLists = lazy_load_particle_list(i)
-        else: 
+        else:
             particleLists = load_particle_list(i)
         particleLists.time = float(i.name.replace(start_of_file_name, "").replace(end_of_file_name, ""))
         result.append(particleLists)
@@ -486,6 +492,7 @@ def load_particle_list(path: Path) -> ParticleList:
         path, sep="\t| ", engine="python", header=None, skiprows=[0, 1, 2], names=names
     )
     return ParticleList(data=data, time=None, info=info, path=path)
+
 
 @LogFileOpening
 def lazy_load_particle_list(path: Path) -> ParticleList:
@@ -591,10 +598,6 @@ def get_extracted_datafields(path: Path) -> ExtractedDataFields:
 
         mesh.loadable_properties[i.stem] = i
 
-
-
-
-
     if not default_settings.Settings.lazy_loading:
         for x in [spacecraft_face, spacecraft_vertex, volume_vertex, spacecraft_mesh, display_vol_mesh]:
             load_all_in_mesh(x)
@@ -607,12 +610,13 @@ def get_extracted_datafields(path: Path) -> ExtractedDataFields:
         display_vol_mesh=display_vol_mesh,
     )
 
+
 def load_all_in_mesh(mesh: Mesh):
     for path in mesh.loadable_properties.values():
         load_property_into_mesh(mesh, path)
 
 
-def load_property_into_mesh(mesh:Mesh, path: pathlib.Path):
+def load_property_into_mesh(mesh: Mesh, path: pathlib.Path):
     data: xarray.Dataset = xarray.open_dataset(path)
     mask: xarray.Dataset = xarray.open_dataset(path / ".." / data.attrs["meshMaskURI"])
     if not check_mask_is_identity(mask, data.attrs["meshMaskURI"]):

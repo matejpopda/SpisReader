@@ -16,7 +16,6 @@ def main():
 
     result = reader.load_simulation(path, force_processing=True)
 
-
     plotters.plot_final_quantities(result)
 
     total_charge = plotters.glob_properties(result, "improved__total_charge_density_at_t_=_*")
