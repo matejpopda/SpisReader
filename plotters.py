@@ -12,6 +12,7 @@ import fnmatch
 import numpy as np
 import numpy.typing as np_typing
 from default_settings import Settings
+import reader
 
 log = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ def _default_filename(filename: str | None, property: str) -> str:
 
 
 def _calculate_percentile(
-    meshes: list[DataSet] | DataSet | list[tuple[DataSet, str]] | DataSet | list[tuple[Mesh, str]],
+    meshes: list[DataSet] | list[tuple[DataSet, str]] | DataSet | list[tuple[Mesh, str]],
     property: str | None = None,
     percentile: float | None = None,
 ) -> tuple[float, float]:
@@ -130,7 +131,7 @@ def save_mesh(
         screenshot_size = Settings.screenshot_size
 
     if path is None:
-        path = Settings.default_path
+        path = Settings.default_output_path
     check_and_create_folder(path)
     filename = _default_filename(filename=filename, property=property)
 
@@ -154,7 +155,7 @@ def slice_and_save(
     percentile: float | None = 0.05,
 ) -> None:
     if path is None:
-        path = Settings.default_path
+        path = Settings.default_output_path
 
     if screenshot_size is None:
         screenshot_size = Settings.screenshot_size
@@ -191,7 +192,7 @@ def xz_slice(
     percentile: float | None = None,
 ) -> None:
     if path is None:
-        path = Settings.default_path
+        path = Settings.default_output_path
     if percentile is None:
         percentile = Settings.percentile
     if screenshot_size is None:
@@ -222,7 +223,7 @@ def xy_slice(
     percentile: float | None = None,
 ) -> None:
     if path is None:
-        path = Settings.default_path
+        path = Settings.default_output_path
     if percentile is None:
         percentile = Settings.percentile
     if screenshot_size is None:
@@ -255,7 +256,7 @@ def yz_slice(
     if percentile is None:
         percentile = Settings.percentile
     if path is None:
-        path = Settings.default_path
+        path = Settings.default_output_path
     if screenshot_size is None:
         screenshot_size = Settings.screenshot_size
     normal = PlaneNormals.YZ
@@ -289,10 +290,16 @@ def glob_properties(
 ) -> list[tuple[Mesh, "str"]]:
     result: list[tuple[Mesh, "str"]] = []
     if isinstance(input, Mesh):
+        unloaded_keys = fnmatch.filter(input.loadable_properties.keys(), property)
+        if len(unloaded_keys) != 0:
+            for key in unloaded_keys:
+                reader.load_property_into_mesh(input, input.loadable_properties.pop(key))
+
         strings = fnmatch.filter(input.properties, property)
         for i in strings:
             if exclude is None or not fnmatch.fnmatch(i, exclude):
                 result.append((input, i))
+        
         return result
 
     if isinstance(input, Simulation):
@@ -414,7 +421,7 @@ def make_gif_xz_slice(
     percentile: float | None = None,
 ) -> None:
     if path is None:
-        path = Settings.default_path
+        path = Settings.default_output_path
     if percentile is None:
         percentile = Settings.percentile
     if screenshot_size is None:
@@ -453,7 +460,7 @@ def make_gif_surface_from_default_view(
     screenshot_size: float | None = None,
 ) -> None:
     if path is None:
-        path = Settings.default_path
+        path = Settings.default_output_path
     if screenshot_size is None:
         screenshot_size = Settings.screenshot_size
 
@@ -485,7 +492,7 @@ def plot_final_quantities(result: Simulation, path: Path | None = None, *, perce
         percentile = Settings.percentile
 
     if path is None:
-        path = Settings.default_path
+        path = Settings.default_output_path
 
     for i, j in glob_properties(result, "*final*", exclude="*surf*"):
         xz_slice(i, j, path=path, percentile=percentile)

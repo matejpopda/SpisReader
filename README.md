@@ -1,9 +1,12 @@
 # TODO
+- Loading files lazily
+- Clean properties function - It will remove loaded data and move the property back into unloaded properties 
+- Particle detector is the last class that takes up lot of memory
 - Singleton for setting default settings and paths
-- When plotting ignore high percentile values (set clim in plotters)
 - Make a function for drawing timeseries
 - Add properties to the Simulation class for easier navigation.
 - Function for writing out the moments
+- Some sort of check to see which files didnt get loaded at all (with optional ignore list)
 - Logging file next to the saved simulation, mainly with errors.
 ## Maybe
 - In get_extracted_datafields() save the timeseries
@@ -11,7 +14,6 @@
 
 # FIX
 - reading of BC and SC
-- In check_if_mask_is_identity check more rigorously.
 
 
 # Basic use

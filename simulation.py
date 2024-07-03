@@ -1,9 +1,12 @@
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import pyvista
 import pyvista.core.dataset
 import pandas
 import xarray
+import typing 
+import weakref
+import pathlib
 
 log = logging.getLogger(__name__)
 
@@ -201,15 +204,23 @@ class ParticleDetector:
     """[name]_Velocity2DF_at_t=*s.txt"""
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, weakref_slot=True, slots=True, unsafe_hash=True )
 class Mesh:
     """Class encapsulating a plottable mesh with functions from plotters.py"""
-
-    mesh: pyvista.core.pointset.UnstructuredGrid
+    name: str = field(hash=True)
+    mesh: pyvista.core.pointset.UnstructuredGrid = field(hash=False)
     time: float | None
     """In case there is multiple meshes made at different times, this parameter can be used to for example sort them"""
-    properties: list[str]
+    properties: list[str] = field(hash=False)
     """List of plottable properties on the mesh"""
+
+    loadable_properties: dict[str, pathlib.Path] = field(hash=False)
+
+
+    instance_list:typing.ClassVar[weakref.WeakSet["Mesh"]] = weakref.WeakSet()
+    def __post_init__(self):
+        self.instance_list.add(self)
+
 
 
 @dataclass(kw_only=True)
@@ -219,16 +230,22 @@ class TimeSeries:
     data: pandas.DataFrame
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, weakref_slot=True, slots=True, unsafe_hash=True )
 class Distribution2D:
     """Class encapsulating 2D distribution"""
 
     time: float | None
     """At what time was the distribution saved"""
-    data: xarray.DataArray
-    """DataArray with named coordinates, the array can sometimes be sparse"""
+    data: xarray.DataArray|None = field(hash=False)
+    """DataArray with named coordinates, the array can sometimes be sparse, if it is None then it is not loaded"""
     plotted_function: str
     """What function is being plotted"""
+
+    path_to_data: pathlib.Path
+
+    instance_list:typing.ClassVar[weakref.WeakSet["Distribution2D"]] = weakref.WeakSet()
+    def __post_init__(self):
+        self.instance_list.add(self)
 
 
 @dataclass(kw_only=True)
@@ -249,14 +266,18 @@ class Moments:
     data: dict[str, float | list[float]]
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, weakref_slot=True, slots=True, unsafe_hash=True)
 class ParticleList:
     """Class encapsulating particle lists"""
 
     time: float | None
-    data: pandas.DataFrame
+    data: pandas.DataFrame|None = field(hash=False)
     info: str
+    path: pathlib.Path
 
+    instance_list:typing.ClassVar[weakref.WeakSet["ParticleList"]] = weakref.WeakSet()
+    def __post_init__(self):
+        self.instance_list.add(self)
 
 @dataclass(kw_only=True)
 class Simulation:

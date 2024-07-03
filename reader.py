@@ -12,6 +12,7 @@ import numpy as np
 import xarray
 import sparse
 import numpy.typing
+import default_settings
 from helpers import LogFileOpening
 from simulation import *
 
@@ -279,7 +280,8 @@ def load_mesh(path: Path) -> Mesh:
     """Loads mesh from path, does not guarantee that time will not be None"""
     mesh = meshio.read(path, file_format="gmsh")
     properties: list[str] = [x for x in mesh.cell_data.keys()]
-    return Mesh(time=None, mesh=pyvista.wrap(mesh), properties=properties)
+    unloaded_properties: dict[str, pathlib.Path]= {}
+    return Mesh(time=None, mesh=pyvista.wrap(mesh), properties=properties, loadable_properties=unloaded_properties, name = path.stem)
 
 
 def ordered_list_of_distribution2D(
@@ -287,7 +289,10 @@ def ordered_list_of_distribution2D(
 ) -> list[Distribution2D]:
     result: list[Distribution2D] = []
     for i in get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name):
-        distribution = load_distribution2d(i)
+        if default_settings.Settings.lazy_loading == True:
+            distribution = lazy_load_distribution2d_name(i)
+        else:
+            distribution = load_distribution2d(i)
         distribution.time = float(i.name.replace(start_of_file_name, "").replace(end_of_file_name, ""))
         result.append(distribution)
 
@@ -418,7 +423,37 @@ def load_distribution2d(path: Path) -> Distribution2D:
         data = sparse.COO.from_numpy(data)  # type:ignore
 
     result = xarray.DataArray(data=data, dims=dims, coords=coords_dic)
-    return Distribution2D(time=None, data=result, plotted_function=plotted_function)
+    return Distribution2D(time=None, data=result, plotted_function=plotted_function, path_to_data=path)
+
+
+@LogFileOpening
+def lazy_load_distribution2d_name(path: Path) -> Distribution2D:
+    # Modified load_distribution2d() function to only get the name
+
+    lines_with_text: list[int] = []
+    with open(path, "r") as file:
+        for line_num, line in enumerate(file):
+            if "[" in line:
+                lines_with_text.append(line_num)
+
+    x_size: int = lines_with_text[1] - lines_with_text[0] - 1
+    y_size: int = lines_with_text[2] - lines_with_text[1] - 1
+    z_size: int = lines_with_text[3] - lines_with_text[2] - 1
+    plotted_function: str
+
+    with open(path, "r") as file:
+        file.readline()
+        for _ in range(x_size):
+            file.readline()
+        file.readline()
+        for _ in range(y_size):
+            file.readline()
+        file.readline()
+        for _ in range(z_size):
+            file.readline()
+
+        plotted_function = file.readline().strip().strip("[]").strip()
+    return Distribution2D(time=None, data=None, plotted_function=plotted_function, path_to_data=path)
 
 
 def ordered_list_of_particleLists(
@@ -426,7 +461,10 @@ def ordered_list_of_particleLists(
 ) -> list[ParticleList]:
     result: list[ParticleList] = []
     for i in get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name):
-        particleLists = load_particle_list(i)
+        if default_settings.Settings.lazy_loading == True:
+            particleLists = lazy_load_particle_list(i)
+        else: 
+            particleLists = load_particle_list(i)
         particleLists.time = float(i.name.replace(start_of_file_name, "").replace(end_of_file_name, ""))
         result.append(particleLists)
 
@@ -447,7 +485,18 @@ def load_particle_list(path: Path) -> ParticleList:
     data: pandas.DataFrame = pandas.read_csv(
         path, sep="\t| ", engine="python", header=None, skiprows=[0, 1, 2], names=names
     )
-    return ParticleList(data=data, time=None, info=info)
+    return ParticleList(data=data, time=None, info=info, path=path)
+
+@LogFileOpening
+def lazy_load_particle_list(path: Path) -> ParticleList:
+    with open(path, "r") as file:
+        x = file.readline()
+        y = file.readline()
+        z = file.readline()
+
+    info = x + y + z
+
+    return ParticleList(data=None, time=None, info=info, path=path)
 
 
 def get_number_of_superparticles(path: Path) -> list[NumberOfSuperparticles]:
@@ -540,19 +589,15 @@ def get_extracted_datafields(path: Path) -> ExtractedDataFields:
             log.error("The mesh name is " + str(mask.attrs["meshURI"]))
             continue
 
-        if not check_mask_is_identity(mask, data.attrs["meshMaskURI"]):
-            uri = str(data.attrs["meshMaskURI"])
-            log.debug(f"Mask {uri} was not an identity")
-            temp = reshape_data_according_to_mask(data, mask)
+        mesh.loadable_properties[i.stem] = i
 
-            add_data_to_mesh(da=temp, mesh=mesh, path_to_property=i, mask=mask)
-            continue
 
-        # https://stackoverflow.com/questions/74693202/add-point-data-to-mesh-and-save-as-vtu
-        for _, da in data.data_vars.items():  # type:ignore
-            cur_data_array: xarray.DataArray = da  # type:ignore
-            add_data_to_mesh(da=cur_data_array, mesh=mesh, path_to_property=i, mask=mask)  # type:ignore
-            continue
+
+
+
+    if not default_settings.Settings.lazy_loading:
+        for x in [spacecraft_face, spacecraft_vertex, volume_vertex, spacecraft_mesh, display_vol_mesh]:
+            load_all_in_mesh(x)
 
     return ExtractedDataFields(
         spacecraft_face=spacecraft_face,
@@ -561,6 +606,27 @@ def get_extracted_datafields(path: Path) -> ExtractedDataFields:
         spacecraft_mesh=spacecraft_mesh,
         display_vol_mesh=display_vol_mesh,
     )
+
+def load_all_in_mesh(mesh: Mesh):
+    for path in mesh.loadable_properties.values():
+        load_property_into_mesh(mesh, path)
+
+
+def load_property_into_mesh(mesh:Mesh, path: pathlib.Path):
+    data: xarray.Dataset = xarray.open_dataset(path)
+    mask: xarray.Dataset = xarray.open_dataset(path / ".." / data.attrs["meshMaskURI"])
+    if not check_mask_is_identity(mask, data.attrs["meshMaskURI"]):
+        uri = str(data.attrs["meshMaskURI"])
+        log.debug(f"Mask {uri} was not an identity")
+        temp = reshape_data_according_to_mask(data, mask)
+
+        add_data_to_mesh(da=temp, mesh=mesh, path_to_property=path, mask=mask)
+        return
+
+    # https://stackoverflow.com/questions/74693202/add-point-data-to-mesh-and-save-as-vtu
+    for _, da in data.data_vars.items():  # type:ignore
+        cur_data_array: xarray.DataArray = da  # type:ignore
+        add_data_to_mesh(da=cur_data_array, mesh=mesh, path_to_property=path, mask=mask)  # type:ignore
 
 
 def add_data_to_mesh(da: xarray.DataArray, mesh: Mesh, path_to_property: Path, mask: xarray.Dataset):
