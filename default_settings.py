@@ -16,4 +16,3 @@ class Settings:
         print(f"Lazy loading is {cls.lazy_loading}")
         print(f"Percentile is {cls.percentile}")
         print("--------------------------------------------------")
-
