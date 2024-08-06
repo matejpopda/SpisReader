@@ -223,7 +223,6 @@ class Mesh:
     def __post_init__(self):
         self.__class__.instance_list.add(self)
 
-
     def __str__(self):
         return "Mesh class - " + self.name
 
@@ -252,8 +251,6 @@ class Distribution2D:
 
     def __post_init__(self):
         self.__class__.instance_list.add(self)
-
-
 
 
 @dataclass(kw_only=True)
@@ -287,7 +284,6 @@ class ParticleList:
 
     def __post_init__(self):
         self.__class__.instance_list.add(self)
-
 
 
 @dataclass(kw_only=True)

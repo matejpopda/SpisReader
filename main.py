@@ -15,7 +15,6 @@ def main():
 
     default_settings.Settings.print_current_settings()
 
-
     result = reader.load_simulation(path, force_processing=True)
 
     plotters.plot_final_quantities(result)

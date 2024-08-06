@@ -335,9 +335,9 @@ def load_moments(path: Path) -> Moments:
     result["Moment of the flux distribution function at the detector surface : Flux"] = float(
         data[10].replace("m-1.s-2 ", "")
     )
-    result["Moment of the flux distribution function at the detector surface: Velocity in GMSH frame"] = (
-        string_to_vec(data[12])
-    )
+    result[
+        "Moment of the flux distribution function at the detector surface: Velocity in GMSH frame"
+    ] = string_to_vec(data[12])
     result["Moment of the flux distribution function at the detector surface: Mean energy"] = float(data[14])
 
     result["Moment of the initial distribution function: Density"] = float(data[18])
@@ -703,14 +703,14 @@ def reshape_data_according_to_mask(data: xarray.Dataset, mask: xarray.Dataset) -
 def load_simulation(
     path_to_spis: Path,
     *,
-    pickle_path: Path| None = None, 
-    processed_name: str|None = None,
+    pickle_path: Path | None = None,
+    processed_name: str | None = None,
     force_processing: bool = False,
 ) -> Simulation:
     if pickle_path is None:
         pickle_path = path_to_spis
 
-    if processed_name is None: 
+    if processed_name is None:
         processed_name = f"processed_simulation_{path_to_spis.stem}.pkl"
 
     if force_processing or not (pickle_path / processed_name).exists():
@@ -721,9 +721,9 @@ def load_simulation(
     return result
 
 
-
-def load_unloaded_distribution2d(distribution: Distribution2D): 
+def load_unloaded_distribution2d(distribution: Distribution2D):
     distribution.data = load_distribution2d(distribution.path_to_data).data
+
 
 def load_unloaded_particle_list(plist: ParticleList):
     plist.data = load_particle_list(plist.path).data
