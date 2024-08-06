@@ -222,6 +222,9 @@ class Mesh:
     def __post_init__(self):
         self.instance_list.add(self)
 
+    def __str__(self):
+        return "Mesh class - " + self.name
+
 
 @dataclass(kw_only=True)
 class TimeSeries:
