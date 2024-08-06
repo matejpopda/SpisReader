@@ -528,7 +528,7 @@ def load_from_SPIS(path: Path) -> Simulation:
     return data
 
 
-def save_as_pickle(simulation: Simulation, path: Path):
+def save_simulation_as_pickle(simulation: Simulation, path: Path):
     # Serialize the object
     serialized_data = pickle.dumps(simulation)
     log.info(
@@ -635,6 +635,9 @@ def load_property_into_mesh(mesh: Mesh, path: pathlib.Path):
 
 def add_data_to_mesh(da: xarray.DataArray, mesh: Mesh, path_to_property: Path, mask: xarray.Dataset):
     try:
+        if "SC" in path_to_property.stem:
+            pass
+
         cur_data = da.data
         if len(cur_data) == mesh.mesh.number_of_points:
             mesh.mesh.point_data[path_to_property.stem] = cur_data
@@ -698,14 +701,29 @@ def reshape_data_according_to_mask(data: xarray.Dataset, mask: xarray.Dataset) -
 
 
 def load_simulation(
-    path: Path,
+    path_to_spis: Path,
     *,
-    processed_name: str = "processed_simulation.pkl",
+    pickle_path: Path| None = None, 
+    processed_name: str|None = None,
     force_processing: bool = False,
 ) -> Simulation:
-    if force_processing or not (path / processed_name).exists():
-        save_as_pickle(load_from_SPIS(path), path / processed_name)
+    if pickle_path is None:
+        pickle_path = path_to_spis
 
-    result = load_pickle(path / processed_name)
+    if processed_name is None: 
+        processed_name = f"processed_simulation_{path_to_spis.stem}.pkl"
+
+    if force_processing or not (pickle_path / processed_name).exists():
+        save_simulation_as_pickle(load_from_SPIS(path_to_spis), pickle_path / processed_name)
+
+    result = load_pickle(pickle_path / processed_name)
 
     return result
+
+
+
+def load_unloaded_distribution2d(distribution: Distribution2D): 
+    distribution.data = load_distribution2d(distribution.path_to_data).data
+
+def load_unloaded_particle_list(plist: ParticleList):
+    plist.data = load_particle_list(plist.path).data

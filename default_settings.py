@@ -14,4 +14,6 @@ class Settings:
         print("Current settings are: ")
         print(f"Default output path is {cls.default_output_path}")
         print(f"Lazy loading is {cls.lazy_loading}")
+        print(f"Percentile is {cls.percentile}")
         print("--------------------------------------------------")
+

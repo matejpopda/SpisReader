@@ -11,8 +11,10 @@ import default_settings
 def main():
     path = pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5") / "CS_01"
     # path = pathlib.Path("C:/Users/matej/Desktop/VU/datafromsofie/S03_11.spis5/S03_11")
+    # path = pathlib.Path("C:/Users/matej/Desktop/VU/29-7/SCA01/SCA01.spis5/SCA01")
 
     default_settings.Settings.print_current_settings()
+
 
     result = reader.load_simulation(path, force_processing=True)
 

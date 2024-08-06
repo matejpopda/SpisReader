@@ -1,4 +1,9 @@
 # TODO
+- default pickle path 
+- better access to deeply nested classes
+
+
+- load trajectories
 - Loading files lazily
 - Clean properties function - It will remove loaded data and move the property back into unloaded properties 
 - Particle detector is the last class that takes up lot of memory
@@ -8,12 +13,14 @@
 - Function for writing out the moments
 - Some sort of check to see which files didnt get loaded at all (with optional ignore list)
 - Logging file next to the saved simulation, mainly with errors.
+
 ## Maybe
 - In get_extracted_datafields() save the timeseries
 - Save monitored_datafields
 
 # FIX
 - reading of BC and SC
+- use pyvista.DataSetFilters.extract_cells for when loading particle detector SC and BC current injections
 
 
 # Basic use

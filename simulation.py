@@ -8,6 +8,7 @@ import typing
 import weakref
 import pathlib
 
+
 log = logging.getLogger(__name__)
 
 
@@ -220,7 +221,8 @@ class Mesh:
     instance_list: typing.ClassVar[weakref.WeakSet["Mesh"]] = weakref.WeakSet()
 
     def __post_init__(self):
-        self.instance_list.add(self)
+        self.__class__.instance_list.add(self)
+
 
     def __str__(self):
         return "Mesh class - " + self.name
@@ -249,7 +251,9 @@ class Distribution2D:
     instance_list: typing.ClassVar[weakref.WeakSet["Distribution2D"]] = weakref.WeakSet()
 
     def __post_init__(self):
-        self.instance_list.add(self)
+        self.__class__.instance_list.add(self)
+
+
 
 
 @dataclass(kw_only=True)
@@ -282,7 +286,8 @@ class ParticleList:
     instance_list: typing.ClassVar[weakref.WeakSet["ParticleList"]] = weakref.WeakSet()
 
     def __post_init__(self):
-        self.instance_list.add(self)
+        self.__class__.instance_list.add(self)
+
 
 
 @dataclass(kw_only=True)
