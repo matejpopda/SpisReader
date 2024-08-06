@@ -576,7 +576,7 @@ def get_extracted_datafields(path: Path) -> ExtractedDataFields:
 
     for i in all_datasets:
         data: xarray.Dataset = xarray.open_dataset(i)
-        mask: xarray.Dataset = xarray.open_dataset(i / ".." / data.attrs["meshMaskURI"])
+        mask: xarray.Dataset = xarray.open_dataset(i.parent / data.attrs["meshMaskURI"])
         mesh: Mesh
 
         if mask.attrs["meshURI"] == "Spacecraft_FACE.msh":
@@ -618,7 +618,7 @@ def load_all_in_mesh(mesh: Mesh):
 
 def load_property_into_mesh(mesh: Mesh, path: pathlib.Path):
     data: xarray.Dataset = xarray.open_dataset(path)
-    mask: xarray.Dataset = xarray.open_dataset(path / ".." / data.attrs["meshMaskURI"])
+    mask: xarray.Dataset = xarray.open_dataset(path.parent / data.attrs["meshMaskURI"])
     if not check_mask_is_identity(mask, data.attrs["meshMaskURI"]):
         uri = str(data.attrs["meshMaskURI"])
         log.debug(f"Mask {uri} was not an identity")
