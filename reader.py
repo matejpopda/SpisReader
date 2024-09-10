@@ -216,7 +216,7 @@ def get_numerical_kernel_output(file_path: Path, instruments: list[UserInstrumen
         emitted_currents=load_time_series(file_path / "emittedCurrents.txt"),
         number_of_superparticles=get_number_of_superparticles(file_path),
         particle_detectors=resulting_particle_detectors,
-        time_steps=load_time_series(file_path / "Simulation_Control_-_time_steps_(s_._s)__TimeSteps.txt"),
+        time_steps=load_time_series(list(file_path.glob("Simulation_Control_-_time_steps_(s_?_s)__TimeSteps.txt"))[0]),
         spis_log=(file_path / "SpisNum.log").read_text(encoding="utf_8", errors="backslashreplace"),
         total_current=load_time_series(file_path / "Total_current_on_spacecraft_surface._SCTotalCurrent.txt"),
         collected_currents=load_time_series(file_path / "collectedCurrents.txt"),
