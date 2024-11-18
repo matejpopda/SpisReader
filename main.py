@@ -7,18 +7,20 @@ import logging as log
 import default_settings
 
 
+
+import matplotlib
+matplotlib.use('TKAgg')
+
 @helpers.log_function_entry_and_exit
 def main():
     path = pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5") / "CS_01"
-    # path = pathlib.Path("C:/Users/matej/Desktop/VU/datafromsofie/S03_11.spis5/S03_11")
-    path = pathlib.Path("C:/Users/matej/Desktop/VU/29-7/SCA01/SCA01.spis5/SCA01")
-    path = pathlib.Path("C:/Users/matej/Desktop/VU/final/DefaultProject.spis5/DefaultStudy")
+
 
 
     default_settings.Settings.print_current_settings()
 
 
-    result = reader.load_simulation(path, force_processing=True)
+    result = reader.load_simulation(path, force_processing=False)
 
     plotters.plot_final_quantities(result)
 
@@ -41,6 +43,7 @@ def main():
     log.info("started plotting gif of size " + str(len(total_charge)))
     plotters.make_gif_xz_slice(total_charge, "plasma_pot")
     log.info("stopped plotting gif")
+
 
 
 if __name__ == "__main__":
