@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import logging
 import typing
 import meshio
-import meshio._mesh # type: ignore
+import meshio._mesh  # type: ignore
 import pyvista
 import pyvista.core.dataset
 import pickle
@@ -216,7 +216,9 @@ def get_numerical_kernel_output(file_path: Path, instruments: list[UserInstrumen
         emitted_currents=load_time_series(file_path / "emittedCurrents.txt"),
         number_of_superparticles=get_number_of_superparticles(file_path),
         particle_detectors=resulting_particle_detectors,
-        time_steps=load_time_series(list(file_path.glob("Simulation_Control_-_time_steps_(s_?_s)__TimeSteps.txt"))[0]),
+        time_steps=load_time_series(
+            list(file_path.glob("Simulation_Control_-_time_steps_(s_?_s)__TimeSteps.txt"))[0]
+        ),
         spis_log=(file_path / "SpisNum.log").read_text(encoding="utf_8", errors="backslashreplace"),
         total_current=load_time_series(file_path / "Total_current_on_spacecraft_surface._SCTotalCurrent.txt"),
         collected_currents=load_time_series(file_path / "collectedCurrents.txt"),
@@ -335,9 +337,9 @@ def load_moments(path: Path) -> Moments:
     result["Moment of the flux distribution function at the detector surface : Flux"] = float(
         data[10].replace("m-1.s-2 ", "")
     )
-    result["Moment of the flux distribution function at the detector surface: Velocity in GMSH frame"] = (
-        string_to_vec(data[12])
-    )
+    result[
+        "Moment of the flux distribution function at the detector surface: Velocity in GMSH frame"
+    ] = string_to_vec(data[12])
     result["Moment of the flux distribution function at the detector surface: Mean energy"] = float(data[14])
 
     result["Moment of the initial distribution function: Density"] = float(data[18])
@@ -686,7 +688,9 @@ def reshape_data_according_to_mask(data: xarray.Dataset, mask: xarray.Dataset) -
 
     assert np_data_array is not None
 
-    inverted_indices = [0] * (max(mask_as_series) + 1)  # TODO: this will fail if the number of elements Im assigning to is not equal to the maximum element index. To fix I need to know what Im assigning to, and I need to know the length of it, previous implementation of using len(mask as series) also wasnt working, temp fix could be grabbing maximum of those 2
+    inverted_indices = [0] * (
+        max(mask_as_series) + 1
+    )  # TODO: this will fail if the number of elements Im assigning to is not equal to the maximum element index. To fix I need to know what Im assigning to, and I need to know the length of it, previous implementation of using len(mask as series) also wasnt working, temp fix could be grabbing maximum of those 2
 
     # Invert the indices
     for i, idx in enumerate(mask_as_series):
@@ -703,8 +707,8 @@ def reshape_data_according_to_mask(data: xarray.Dataset, mask: xarray.Dataset) -
 def load_simulation(
     path_to_spis: Path,
     *,
-    pickle_path: Path| None = None, 
-    processed_name: str|None = None,
+    pickle_path: Path | None = None,
+    processed_name: str | None = None,
     force_processing: bool = False,
 ) -> Simulation:
     if pickle_path is None:
@@ -713,7 +717,7 @@ def load_simulation(
         else:
             pickle_path = default_settings.Settings.default_pickle_path
 
-    if processed_name is None: 
+    if processed_name is None:
         processed_name = f"processed_simulation_{path_to_spis.stem}.pkl"
 
     if force_processing or not (pickle_path / processed_name).exists():
@@ -724,9 +728,9 @@ def load_simulation(
     return result
 
 
-
-def load_unloaded_distribution2d(distribution: Distribution2D): 
+def load_unloaded_distribution2d(distribution: Distribution2D):
     distribution.data = load_distribution2d(distribution.path_to_data).data
+
 
 def load_unloaded_particle_list(plist: ParticleList):
     plist.data = load_particle_list(plist.path).data
