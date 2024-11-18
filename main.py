@@ -13,8 +13,12 @@ matplotlib.use('TKAgg')
 
 @helpers.log_function_entry_and_exit
 def main():
-    path = pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5") / "CS_01"
+    # path = pathlib.Path("C:/Users/matej/Desktop/VU/exampl.e/example/cube_wsc_01.spis5") / "CS_01"
+    # path = pathlib.Path("C:/Users/matej/Desktop/VU/datafromsofie/S03_11.spis5/S03_11")
+    # path = pathlib.Path("C:/Users/matej/Desktop/VU/29-7/SCA01/SCA01.spis5/SCA01")
+    path = pathlib.Path("C:/Users/matej/Desktop/VU/finalfinalfine/DefaultProject.spis5/DefaultStudy")
 
+    # path = pathlib.Path("C:/Users/matej/Desktop/VU/david/SCD04FP.spis5/SCD04FP")
 
 
     default_settings.Settings.print_current_settings()

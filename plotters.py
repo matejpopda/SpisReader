@@ -503,9 +503,7 @@ def plot_final_quantities(result: Simulation, path: Path | None = None, *, perce
 
     for i, property in glob_properties(result, "*final*", exclude="*surf*"):
         filename: str = property + ".png"
-
         xz_slice(i, property, path=path, percentile=percentile, filename="XZ_" + filename)
-
         xy_slice(i, property, path=path, percentile=percentile, filename="XY_" + filename)
         yz_slice(i, property, path=path, percentile=percentile, filename="YZ_" + filename)
     log.info("Done plotting final quantities")

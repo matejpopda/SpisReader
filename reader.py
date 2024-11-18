@@ -708,7 +708,10 @@ def load_simulation(
     force_processing: bool = False,
 ) -> Simulation:
     if pickle_path is None:
-        pickle_path = path_to_spis
+        if default_settings.Settings.default_pickle_path is None:
+            pickle_path = path_to_spis
+        else:
+            pickle_path = default_settings.Settings.default_pickle_path
 
     if processed_name is None: 
         processed_name = f"processed_simulation_{path_to_spis.stem}.pkl"
