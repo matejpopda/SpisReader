@@ -304,3 +304,16 @@ class Simulation:
     @property
     def extracted_data_fields(self):
         return self.results.extracted_data_fields
+    
+
+    @property
+    def user_instruments(self):
+        return self.results.user_instruments
+
+    @property
+    def particle_detectors(self):
+        return self.results.numerical_kernel_output.particle_detectors
+
+    @property 
+    def time_steps(self):
+        return self.results.numerical_kernel_output.time_steps
