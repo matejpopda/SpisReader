@@ -205,6 +205,10 @@ class ParticleDetector:
     """[name]_Velocity2DF_at_t=*s.txt"""
 
 
+    def __str__(self):
+        return "Particle detector - " + self.name
+
+
 @dataclass(kw_only=True, weakref_slot=True, slots=True, unsafe_hash=True)
 class Mesh:
     """Class encapsulating a plottable mesh with functions from plotters.py"""

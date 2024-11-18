@@ -14,6 +14,7 @@ import numpy.typing as np_typing
 from default_settings import Settings
 import reader
 
+
 log = logging.getLogger(__name__)
 
 
@@ -153,6 +154,7 @@ def slice_and_save(
     filename: str | None = None,
     screenshot_size: float | None = None,
     percentile: float | None = 0.05,
+    view_up: vector|None = None,
 ) -> None:
     if path is None:
         path = Settings.default_output_path
@@ -171,11 +173,14 @@ def slice_and_save(
         clim = None
 
     plotter = pyvista.plotting.Plotter(off_screen=True)  # type: ignore
-    mesh = mesh.slice(normal=PlaneNormals.XZ, origin=slice_origin)  # type:ignore
+    mesh = mesh.slice(normal=normal, origin=slice_origin)  # type:ignore
     plotter.add_mesh(mesh, scalars=property, clim=clim)  # type: ignore
 
     plotter.enable_parallel_projection()  # type: ignore
     plotter.camera_position = normal
+
+    if view_up is not None:
+        plotter.set_viewup(view_up) # type: ignore
 
     plotter.screenshot(filename=path, scale=screenshot_size)  # type: ignore
 
@@ -208,6 +213,7 @@ def xz_slice(
         filename=filename,
         screenshot_size=screenshot_size,
         percentile=percentile,
+        view_up=PlaneNormals.XY
     )
 
 
@@ -239,6 +245,7 @@ def xy_slice(
         filename=filename,
         screenshot_size=screenshot_size,
         percentile=percentile,
+        view_up=PlaneNormals.XZ_flipped
     )
 
 
@@ -494,6 +501,11 @@ def plot_final_quantities(result: Simulation, path: Path | None = None, *, perce
     if path is None:
         path = Settings.default_output_path
 
-    for i, j in glob_properties(result, "*final*", exclude="*surf*"):
-        xz_slice(i, j, path=path, percentile=percentile)
+    for i, property in glob_properties(result, "*final*", exclude="*surf*"):
+        filename: str = property + ".png"
+
+        xz_slice(i, property, path=path, percentile=percentile, filename="XZ_" + filename)
+
+        xy_slice(i, property, path=path, percentile=percentile, filename="XY_" + filename)
+        yz_slice(i, property, path=path, percentile=percentile, filename="YZ_" + filename)
     log.info("Done plotting final quantities")

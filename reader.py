@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import logging
 import typing
 import meshio
-import meshio._mesh
+import meshio._mesh # type: ignore
 import pyvista
 import pyvista.core.dataset
 import pickle
@@ -645,12 +645,12 @@ def add_data_to_mesh(da: xarray.DataArray, mesh: Mesh, path_to_property: Path, m
             mesh.mesh.cell_data[path_to_property.stem] = cur_data
         # this last option shouldn't run
         else:
-            log.warn(f"{str(path_to_property.stem)} was saved as field data. This data can't be plotted")
+            log.warning(f"{str(path_to_property.stem)} was saved as field data. This data can't be plotted")
             mesh.mesh.field_data[path_to_property.stem] = cur_data
         mesh.properties.append(path_to_property.stem)
         log.debug("Loaded " + path_to_property.stem)
     except Exception as e:
-        log.warn("Failed on " + path_to_property.stem + " this data won't be available")
+        log.warning("Failed on " + path_to_property.stem + " this data won't be available")
         log.debug("Was using the mask " + str(mask.attrs["meshURI"]))
         log.debug(type(e).__name__, e)
 
@@ -686,7 +686,7 @@ def reshape_data_according_to_mask(data: xarray.Dataset, mask: xarray.Dataset) -
 
     assert np_data_array is not None
 
-    inverted_indices = [0] * len(mask_as_series)
+    inverted_indices = [0] * (max(mask_as_series) + 1)  # TODO: this will fail if the number of elements Im assigning to is not equal to the maximum element index. To fix I need to know what Im assigning to, and I need to know the length of it, previous implementation of using len(mask as series) also wasnt working, temp fix could be grabbing maximum of those 2
 
     # Invert the indices
     for i, idx in enumerate(mask_as_series):
