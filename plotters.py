@@ -154,7 +154,7 @@ def slice_and_save(
     filename: str | None = None,
     screenshot_size: float | None = None,
     percentile: float | None = 0.05,
-    view_up: vector|None = None,
+    view_up: vector | None = None,
 ) -> None:
     if path is None:
         path = Settings.default_output_path
@@ -180,7 +180,7 @@ def slice_and_save(
     plotter.camera_position = normal
 
     if view_up is not None:
-        plotter.set_viewup(view_up) # type: ignore
+        plotter.set_viewup(view_up)  # type: ignore
 
     plotter.screenshot(filename=path, scale=screenshot_size)  # type: ignore
 
@@ -213,7 +213,7 @@ def xz_slice(
         filename=filename,
         screenshot_size=screenshot_size,
         percentile=percentile,
-        view_up=PlaneNormals.XY
+        view_up=PlaneNormals.XY,
     )
 
 
@@ -245,7 +245,7 @@ def xy_slice(
         filename=filename,
         screenshot_size=screenshot_size,
         percentile=percentile,
-        view_up=PlaneNormals.XZ_flipped
+        view_up=PlaneNormals.XZ_flipped,
     )
 
 
