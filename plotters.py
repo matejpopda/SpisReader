@@ -177,7 +177,7 @@ def slice_and_save(
     plotter.add_mesh(mesh, scalars=property, clim=clim)  # type: ignore
 
     plotter.enable_parallel_projection()  # type: ignore
-    plotter.camera_position = normal
+    plotter.camera_position = [normal, slice_origin, (0,1,0)] 
 
     if view_up is not None:
         plotter.set_viewup(view_up) # type: ignore
@@ -276,6 +276,7 @@ def yz_slice(
         filename=filename,
         screenshot_size=screenshot_size,
         percentile=percentile,
+        view_up=PlaneNormals.XZ
     )
 
 
