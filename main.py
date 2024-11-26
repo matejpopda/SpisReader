@@ -7,9 +7,10 @@ import logging as log
 import default_settings
 
 
-
 import matplotlib
-matplotlib.use('TKAgg')
+
+matplotlib.use("TKAgg")
+
 
 @helpers.log_function_entry_and_exit
 def main():
@@ -20,9 +21,7 @@ def main():
 
     # path = pathlib.Path("C:/Users/matej/Desktop/VU/david/SCD04FP.spis5/SCD04FP")
 
-
     default_settings.Settings.print_current_settings()
-
 
     result = reader.load_simulation(path, force_processing=False)
 
@@ -47,7 +46,6 @@ def main():
     log.info("started plotting gif of size " + str(len(total_charge)))
     plotters.make_gif_xz_slice(total_charge, "plasma_pot")
     log.info("stopped plotting gif")
-
 
 
 if __name__ == "__main__":
