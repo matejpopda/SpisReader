@@ -9,7 +9,9 @@ import electron_detector
 
 
 import matplotlib
-matplotlib.use('TKAgg')
+
+matplotlib.use("TKAgg")
+
 
 @helpers.log_function_entry_and_exit
 def main():
@@ -48,7 +50,6 @@ def main():
     log.info("started plotting gif of size " + str(len(total_charge)))
     plotters.make_gif_xz_slice(total_charge, "plasma_pot")
     log.info("stopped plotting gif")
-
 
 
 if __name__ == "__main__":
