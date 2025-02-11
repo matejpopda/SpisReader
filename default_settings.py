@@ -2,7 +2,6 @@ from pathlib import Path
 
 
 class Settings:
-
     # Cut off for extremal values
     percentile: float = 0.05
 
@@ -14,7 +13,7 @@ class Settings:
     lazy_loading: bool = True
 
     # If set to none, then the pickle is saved in the location where the spis output is
-    default_pickle_path: Path|None = Path("./temp")
+    default_pickle_path: Path | None = Path("./temp")
 
     @classmethod
     def print_current_settings(cls):
@@ -24,4 +23,3 @@ class Settings:
         print(f"Lazy loading is {cls.lazy_loading}")
         print(f"Percentile is {cls.percentile}")
         print("--------------------------------------------------")
-

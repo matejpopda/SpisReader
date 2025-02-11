@@ -150,25 +150,24 @@ def generate_efield_vector_property(simulation: Simulation):
     assert len(x_value) == 1
     x_property_name = x_value[0][1]
     # print(x_value[0][0].mesh.point_data)
-    x_array = x_value[0][0].mesh.get_array(x_property_name, "point") # type: ignore
+    x_array = x_value[0][0].mesh.get_array(x_property_name, "point")  # type: ignore
     x_array = typing.cast(npt.NDArray[np.float64], x_array)
-    
+
     y_value = glob_properties(simulation, "*finalplasma_elec_field_Ey*")
-    assert len(y_value) == 1    
+    assert len(y_value) == 1
     y_property_name = y_value[0][1]
-    y_array = y_value[0][0].mesh.get_array(y_property_name, "point") # type: ignore
+    y_array = y_value[0][0].mesh.get_array(y_property_name, "point")  # type: ignore
     y_array = typing.cast(npt.NDArray[np.float64], y_array)
-    
+
     z_value = glob_properties(simulation, "*finalplasma_elec_field_Ez*")
     assert len(z_value) == 1
     z_property_name = z_value[0][1]
-    z_array = z_value[0][0].mesh.get_array(z_property_name, "point") # type: ignore
+    z_array = z_value[0][0].mesh.get_array(z_property_name, "point")  # type: ignore
     z_array = typing.cast(npt.NDArray[np.float64], z_array)
-    
+
     assert z_value[0][0] == y_value[0][0] == x_value[0][0]
 
-
-    result = np.column_stack([x_array, y_array, z_array]) 
+    result = np.column_stack([x_array, y_array, z_array])
 
     # print(result)
 

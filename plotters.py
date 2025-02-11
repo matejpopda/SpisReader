@@ -154,7 +154,7 @@ def slice_and_save(
     filename: str | None = None,
     screenshot_size: float | None = None,
     percentile: float | None = 0.05,
-    view_up: vector|None = None,
+    view_up: vector | None = None,
 ) -> None:
     if path is None:
         path = Settings.default_output_path
@@ -177,10 +177,10 @@ def slice_and_save(
     plotter.add_mesh(mesh, scalars=property, clim=clim)  # type: ignore
 
     plotter.enable_parallel_projection()  # type: ignore
-    plotter.camera_position = [normal, slice_origin, (0,1,0)] 
+    plotter.camera_position = [normal, slice_origin, (0, 1, 0)]
 
     if view_up is not None:
-        plotter.set_viewup(view_up) # type: ignore
+        plotter.set_viewup(view_up)  # type: ignore
 
     plotter.screenshot(filename=path, scale=screenshot_size)  # type: ignore
 
@@ -213,7 +213,7 @@ def xz_slice(
         filename=filename,
         screenshot_size=screenshot_size,
         percentile=percentile,
-        view_up=PlaneNormals.XY
+        view_up=PlaneNormals.XY,
     )
 
 
@@ -245,7 +245,7 @@ def xy_slice(
         filename=filename,
         screenshot_size=screenshot_size,
         percentile=percentile,
-        view_up=PlaneNormals.XZ_flipped
+        view_up=PlaneNormals.XZ_flipped,
     )
 
 
@@ -276,7 +276,7 @@ def yz_slice(
         filename=filename,
         screenshot_size=screenshot_size,
         percentile=percentile,
-        view_up=PlaneNormals.XZ
+        view_up=PlaneNormals.XZ,
     )
 
 
@@ -296,7 +296,9 @@ def glob_properties(
     ignore_num_kernel: bool = True,
     exclude: str | None = None,
 ) -> list[tuple[Mesh, "str"]]:
-    return utils.glob_properties(input=input, property=property, ignore_num_kernel=ignore_num_kernel, exclude=exclude)
+    return utils.glob_properties(
+        input=input, property=property, ignore_num_kernel=ignore_num_kernel, exclude=exclude
+    )
 
 
 def make_gif_xz_slice(
