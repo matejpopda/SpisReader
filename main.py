@@ -3,9 +3,9 @@ import helpers
 import plotters
 import reader
 import logging as log
-
+import utils
 import default_settings
-
+import electron_detector
 
 
 import matplotlib
@@ -13,20 +13,21 @@ matplotlib.use('TKAgg')
 
 @helpers.log_function_entry_and_exit
 def main():
-    # path = pathlib.Path("C:/Users/matej/Desktop/VU/exampl.e/example/cube_wsc_01.spis5") / "CS_01"
-    # path = pathlib.Path("C:/Users/matej/Desktop/VU/datafromsofie/S03_11.spis5/S03_11")
-    # path = pathlib.Path("C:/Users/matej/Desktop/VU/29-7/SCA01/SCA01.spis5/SCA01")
-    path = pathlib.Path("C:/Users/matej/Desktop/VU/finalfinalfine/DefaultProject.spis5/DefaultStudy")
-
-    # path = pathlib.Path("C:/Users/matej/Desktop/VU/david/SCD04FP.spis5/SCD04FP")
-
+    path = pathlib.Path("C:/Users/matej/Desktop/VU/data_efield/SOLO06.spis5/SOLO06")
 
     default_settings.Settings.print_current_settings()
 
-
     result = reader.load_simulation(path, force_processing=False)
 
-    plotters.plot_final_quantities(result)
+    utils.generate_efield_vector_property(result)
+
+    detector = electron_detector.ElectronDetector(result)
+    detector.backtrack()
+    detector.result_accumulator.plot()
+
+    # plotters.plot_final_quantities(result)
+
+    exit()
 
     total_charge = plotters.glob_properties(result, "improved__total_charge_density_at_t_=_*")
     log.info("started plotting gif of size " + str(len(total_charge)))

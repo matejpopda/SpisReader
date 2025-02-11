@@ -12,7 +12,7 @@ import fnmatch
 import numpy as np
 import numpy.typing as np_typing
 from default_settings import Settings
-import reader
+import utils
 
 
 log = logging.getLogger(__name__)
@@ -296,127 +296,7 @@ def glob_properties(
     ignore_num_kernel: bool = True,
     exclude: str | None = None,
 ) -> list[tuple[Mesh, "str"]]:
-    result: list[tuple[Mesh, "str"]] = []
-    if isinstance(input, Mesh):
-        unloaded_keys = fnmatch.filter(input.loadable_properties.keys(), property)
-        if len(unloaded_keys) != 0:
-            for key in unloaded_keys:
-                reader.load_property_into_mesh(input, input.loadable_properties.pop(key))
-
-        strings = fnmatch.filter(input.properties, property)
-        for i in strings:
-            if exclude is None or not fnmatch.fnmatch(i, exclude):
-                result.append((input, i))
-
-        return result
-
-    if isinstance(input, Simulation):
-        result += glob_properties(
-            input.preprocessing,
-            property=property,
-            ignore_num_kernel=ignore_num_kernel,
-            exclude=exclude,
-        )
-        result += glob_properties(
-            input.results,
-            property=property,
-            ignore_num_kernel=ignore_num_kernel,
-            exclude=exclude,
-        )
-
-    if isinstance(input, SimulationPreprocessing):
-        result += glob_properties(
-            input.model,
-            property=property,
-            ignore_num_kernel=ignore_num_kernel,
-            exclude=exclude,
-        )
-
-    if isinstance(input, SimulationResults):
-        result += glob_properties(
-            input.extracted_data_fields,
-            property=property,
-            ignore_num_kernel=ignore_num_kernel,
-            exclude=exclude,
-        )
-        if not ignore_num_kernel:
-            result += glob_properties(
-                input.numerical_kernel_output,
-                property=property,
-                ignore_num_kernel=ignore_num_kernel,
-                exclude=exclude,
-            )
-
-    if isinstance(input, NumericalResults):
-        result += glob_properties(
-            input.particle_detectors,
-            property=property,
-            ignore_num_kernel=ignore_num_kernel,
-            exclude=exclude,
-        )
-
-    if isinstance(input, list):
-        for i in input:
-            if isinstance(i, ParticleDetector):
-                result += glob_properties(
-                    i.differential_flux_mesh,
-                    property=property,
-                    ignore_num_kernel=ignore_num_kernel,
-                    exclude=exclude,
-                )
-                result += glob_properties(
-                    i.initial_distribution_mesh,
-                    property=property,
-                    ignore_num_kernel=ignore_num_kernel,
-                    exclude=exclude,
-                )
-                result += glob_properties(
-                    i.distribution_function_mesh,
-                    property=property,
-                    ignore_num_kernel=ignore_num_kernel,
-                    exclude=exclude,
-                )
-            if isinstance(i, Mesh):
-                result += glob_properties(
-                    i,
-                    property=property,
-                    ignore_num_kernel=ignore_num_kernel,
-                    exclude=exclude,
-                )
-
-    if isinstance(input, ExtractedDataFields):
-        result += glob_properties(
-            input.spacecraft_face,
-            property=property,
-            ignore_num_kernel=ignore_num_kernel,
-            exclude=exclude,
-        )
-        result += glob_properties(
-            input.spacecraft_mesh,
-            property=property,
-            ignore_num_kernel=ignore_num_kernel,
-            exclude=exclude,
-        )
-        result += glob_properties(
-            input.spacecraft_vertex,
-            property=property,
-            ignore_num_kernel=ignore_num_kernel,
-            exclude=exclude,
-        )
-        result += glob_properties(
-            input.volume_vertex,
-            property=property,
-            ignore_num_kernel=ignore_num_kernel,
-            exclude=exclude,
-        )
-        result += glob_properties(
-            input.display_vol_mesh,
-            property=property,
-            ignore_num_kernel=ignore_num_kernel,
-            exclude=exclude,
-        )
-
-    return result
+    return utils.glob_properties(input=input, property=property, ignore_num_kernel=ignore_num_kernel, exclude=exclude)
 
 
 def make_gif_xz_slice(

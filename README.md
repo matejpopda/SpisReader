@@ -1,4 +1,5 @@
 # TODO
+- add MSHtoVTK library in order to keep physical groups
 - better access to deeply nested classes
 - load trajectories
 - Clean properties function - It will remove loaded data and move the property back into unloaded properties 
