@@ -2,8 +2,14 @@ from simulation import *
 import fnmatch
 import reader
 import numpy as np
+import math
 import numpy.typing as npt
 import typing
+
+from typing import TypeAlias, Literal
+
+Vector3D: TypeAlias = np.ndarray[tuple[Literal[3]], np.dtype[np.float64]]
+Vector2D: TypeAlias = np.ndarray[tuple[Literal[3]], np.dtype[np.float64]]
 
 
 def glob_properties(
@@ -175,3 +181,31 @@ def generate_efield_vector_property(simulation: Simulation):
     x_value[0][0].mesh["vector_electric_field"] = result
 
     return x_value[0][0].mesh
+
+
+def normalize(v:Vector3D):
+    return v / np.linalg.norm(v)
+
+def cartesian_to_polar(point:Vector3D, direction:Vector3D, up:Vector3D):
+    """Convert a single XYZ point on a sphere to polar coordinates with specified reference and up directions"""
+
+    
+
+    point_normalized = normalize(point)
+    direction_normalized = normalize(direction)
+    
+    up_normalized = normalize(np.cross(direction_normalized, np.cross(direction_normalized, up)))
+    
+    orthogonal_to_plane = normalize(np.cross(direction_normalized, up_normalized))
+
+    cosine_of_azimuthal_angle = np.dot(point_normalized, orthogonal_to_plane)
+
+    projected_point = normalize(point_normalized - np.dot(orthogonal_to_plane, point_normalized)*orthogonal_to_plane)
+
+    cosine_of_polar_angle = np.dot(projected_point, direction_normalized)
+
+    theta = np.arcsin(cosine_of_azimuthal_angle)  # Azimuthal angle
+    phi = np.arcsin(cosine_of_polar_angle)  # Polar angle
+    
+
+    return theta, phi

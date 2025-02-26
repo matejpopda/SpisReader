@@ -60,7 +60,7 @@ class ScatterResultAccumulator(ResultAccumulator):
 
         if electron.collision_type == CollisionTypes.Boundary:
             self.particle_origins_miss_spacecraft.append(x)
-        if electron.collision_type == CollisionTypes.Spacecraft:
+        elif electron.collision_type == CollisionTypes.Spacecraft:
             self.particle_origins_hit_spacecraft.append(x)
         else:
             self.particle_origins_unknown.append(x)
@@ -72,8 +72,8 @@ class ScatterResultAccumulator(ResultAccumulator):
         for i in self.particle_origins_hit_spacecraft:
             plt.scatter(i[0], i[1], c="red")
 
-        # for i in self.particle_origins_unknown:
-        #     plt.scatter(i[0], i[1], c="green")
+        for i in self.particle_origins_unknown:
+            plt.scatter(i[0], i[1], c="green")
         plt.show()
 
 
@@ -82,8 +82,8 @@ class ElectronDetector:
     def __init__(self, data: simulation.Simulation) -> None:
         self.particles: list[Any] = []
         self.position: Vector3D = np.array([-10, 0, 0])
-        self.orientation: Vector3D
-        self.updirection: Vector3D
+        self.orientation: Vector3D = np.array([0, 0, 1])
+        self.updirection: Vector3D = np.array([0, 0 ,1])
         self.radius: float = 0.1
         self.cone_:float 
         self.acceptance_angle: Vector2D
@@ -91,8 +91,8 @@ class ElectronDetector:
         self.time: float
         self.dt: float = 12 / 18755372 
 
-        self.number_of_samples: int = 500
-        self.number_of_steps: int = 15
+        self.number_of_samples: int = 700
+        self.number_of_steps: int = 5
 
 
         self.simulation: simulation.Simulation = data
@@ -101,7 +101,8 @@ class ElectronDetector:
 
         self.mesh = utils.generate_efield_vector_property(self.simulation) # Contains "vector_electric_field"
 
-    
+
+
     def backtrack(self):
         for _ in range(self.number_of_samples):
             electron = self.generate_electron()
@@ -134,15 +135,10 @@ class ElectronDetector:
 
 
     def get_electric_field(self, position: Vector3D) -> Vector3D:
-        id: int = self.mesh.find_containing_cell(position)
+        id: int = self.mesh.find_containing_cell(position) #type: ignore 
         result = self.mesh["vector_electric_field"][id]
-
-        # print(result)
-
         return result
-        self.mesh["vector_electric_field"]
-        return np.array((0,0,0))
-        self.mesh["vector_electric_field"]
+
     
 
     def check_boundary_collision(self, electron :Electron) -> bool:
@@ -194,9 +190,14 @@ class ElectronDetector:
         result = self.position + origin*self.radius 
         return result
 
-    def _map_point_into_2d_plane(self, input:Vector3D) -> Vector2D:
-        return np.array((input[1],input[2]))
 
+    def _convert_origin_to_polar(self, point:Vector3D) -> tuple[float, float]:
+        return utils.cartesian_to_polar(point=point, direction=self.orientation, up=self.updirection)
+    
+    def _map_point_into_2d_plane(self, input:Vector3D) -> Vector2D:
+        # return np.array((input[1],input[2]))
+        return np.array(self._convert_origin_to_polar(input))
+    
     def _random_point_unit_sphere(self) -> Vector3D:
         x = np.random.normal()
         y = np.random.normal()
