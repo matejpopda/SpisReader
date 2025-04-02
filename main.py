@@ -9,7 +9,9 @@ import electron_detector
 
 
 import matplotlib
-matplotlib.use('TKAgg')
+
+matplotlib.use("TKAgg")
+
 
 @helpers.log_function_entry_and_exit
 def main():
@@ -19,8 +21,6 @@ def main():
 
     result = reader.load_simulation(path, force_processing=False)
 
-
-
     utils.generate_efield_vector_property(result)
 
     detector = electron_detector.ElectronDetector(result)
@@ -29,9 +29,7 @@ def main():
     mesh = plotters.glob_properties(result, "*spacecraft*")[0][0]
     # plotters.interactive_plot_mesh_with_typed_trajectories(mesh, detector.get_typed_trajectories())
 
-
     detector.result_accumulator.plot()
-
 
     # plotters.plot_final_quantities(result)
 
@@ -56,7 +54,6 @@ def main():
     log.info("started plotting gif of size " + str(len(total_charge)))
     plotters.make_gif_xz_slice(total_charge, "plasma_pot")
     log.info("stopped plotting gif")
-
 
 
 if __name__ == "__main__":
