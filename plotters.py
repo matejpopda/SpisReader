@@ -3,6 +3,9 @@ import pyvista.core.pyvista_ndarray
 import pyvista.plotting
 from pyvista.plotting.plotter import Plotter
 from pyvista.core.dataset import DataSet
+import pyvista.utilities
+import pyvista.core.utilities.points
+import pyvista.utilities
 from simulation import *
 import pyvista.core.dataset
 from helpers import allow_mesh, check_and_create_folder
@@ -14,6 +17,8 @@ import numpy.typing as np_typing
 from default_settings import Settings
 import utils
 
+from typing import Tuple
+from electron_detector import CollisionTypes
 
 log = logging.getLogger(__name__)
 
@@ -111,10 +116,45 @@ def interactive_plot_physical_mesh(mesh: DataSet) -> None:
     interactive_plot_mesh(mesh, "gmsh:physical")
 
 
+
+
 @allow_mesh
 def interactive_plot_mesh(mesh: DataSet, property: str) -> None:
     plotter = Plotter()
     plotter.add_mesh(mesh, scalars=property)  # type: ignore
+    plotter.show()  # type: ignore
+
+
+
+@allow_mesh
+def interactive_plot_mesh_with_trajectories(mesh: DataSet, trajectories: list[list[vector]] ) -> None:
+    plotter = Plotter()
+    plotter.add_mesh(mesh, scalars= "gmsh:physical")  # type: ignore
+
+    for trajectory in trajectories:
+        # print(trajectory)
+        line = pyvista.core.utilities.points.lines_from_points(trajectory) # type: ignore
+        plotter.add_mesh(line, color="black") # type: ignore
+    plotter.show()  # type: ignore
+
+
+
+@allow_mesh
+def interactive_plot_mesh_with_typed_trajectories(mesh: DataSet, trajectories: list[Tuple[list[vector], CollisionTypes]] ) -> None:
+    plotter = Plotter()
+    plotter.add_mesh(mesh, scalars= "gmsh:physical")  # type: ignore
+
+    for trajectory in trajectories:
+        # print(trajectory)
+        line = pyvista.core.utilities.points.lines_from_points(trajectory[0]) # type: ignore
+        color = "black"
+        if trajectory[1] == CollisionTypes.Spacecraft:
+            color = "red"
+        if trajectory[1] == CollisionTypes.Boundary:
+            color = "blue"
+        
+
+        plotter.add_mesh(line, color=color) # type: ignore
     plotter.show()  # type: ignore
 
 

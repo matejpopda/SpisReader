@@ -19,11 +19,19 @@ def main():
 
     result = reader.load_simulation(path, force_processing=False)
 
+
+
     utils.generate_efield_vector_property(result)
 
     detector = electron_detector.ElectronDetector(result)
     detector.backtrack()
+
+    mesh = plotters.glob_properties(result, "*spacecraft*")[0][0]
+    # plotters.interactive_plot_mesh_with_typed_trajectories(mesh, detector.get_typed_trajectories())
+
+
     detector.result_accumulator.plot()
+
 
     # plotters.plot_final_quantities(result)
 
