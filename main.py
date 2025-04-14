@@ -3,22 +3,37 @@ import helpers
 import plotters
 import reader
 import logging as log
-
+import utils
 import default_settings
+import electron_detector
+
+
+import matplotlib
+
+matplotlib.use("TKAgg")
 
 
 @helpers.log_function_entry_and_exit
 def main():
-    path = pathlib.Path("C:/Users/matej/Desktop/VU/example/example/cube_wsc_01.spis5") / "CS_01"
-    # path = pathlib.Path("C:/Users/matej/Desktop/VU/datafromsofie/S03_11.spis5/S03_11")
-    # path = pathlib.Path("C:/Users/matej/Desktop/VU/29-7/SCA01/SCA01.spis5/SCA01")
+    path = pathlib.Path("C:/Users/matej/Desktop/VU/data_efield/SOLO06.spis5/SOLO06")
 
     default_settings.Settings.print_current_settings()
 
+    result = reader.load_simulation(path, force_processing=False)
 
-    result = reader.load_simulation(path, force_processing=True)
+    utils.generate_efield_vector_property(result)
 
-    plotters.plot_final_quantities(result)
+    detector = electron_detector.ElectronDetector(result)
+    detector.backtrack()
+
+    mesh = plotters.glob_properties(result, "*spacecraft*")[0][0]
+    # plotters.interactive_plot_mesh_with_typed_trajectories(mesh, detector.get_typed_trajectories())
+
+    detector.result_accumulator.plot()
+
+    # plotters.plot_final_quantities(result)
+
+    exit()
 
     total_charge = plotters.glob_properties(result, "improved__total_charge_density_at_t_=_*")
     log.info("started plotting gif of size " + str(len(total_charge)))
