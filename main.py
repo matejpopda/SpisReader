@@ -7,18 +7,25 @@ import utils
 import default_settings
 import electron_detector
 
+import pyvista
+import pyvista.plotting.plotter
 
 import matplotlib
 matplotlib.use('TKAgg')
+log.getLogger('matplotlib.font_manager').setLevel(log.ERROR)
+
 
 @helpers.log_function_entry_and_exit
 def main():
-    path = pathlib.Path("C:/Users/matej/Desktop/VU/data_efield/SOLO06.spis5/SOLO06")
+    path = pathlib.Path("C:/Users/matej/Desktop/VU/data_efield/sofiedata/SOLO06.spis5/SOLO06")
 
     default_settings.Settings.print_current_settings()
 
     result = reader.load_simulation(path, force_processing=False)
 
+    mesh = plotters.glob_properties(result, "*spacecraft*")[0][0]
+
+    
 
 
     utils.generate_efield_vector_property(result)
@@ -26,8 +33,12 @@ def main():
     detector = electron_detector.ElectronDetector(result)
     detector.backtrack()
 
-    mesh = plotters.glob_properties(result, "*spacecraft*")[0][0]
-    # plotters.interactive_plot_mesh_with_typed_trajectories(mesh, detector.get_typed_trajectories())
+
+
+    plotters.interactive_plot_mesh_with_typed_trajectories(mesh, detector.get_typed_trajectories())
+
+    # trajectories = [x.data for x in result.extracted_data_fields.particle_trajectories]
+    # plotters.interactive_plot_mesh_with_trajectories(mesh, trajectories)
 
 
     detector.result_accumulator.plot()
@@ -58,6 +69,13 @@ def main():
     log.info("stopped plotting gif")
 
 
+    #### Drawing normals
+    # plotter = pyvista.plotting.plotter.Plotter()
+    # surf =   mesh.mesh.extract_surface()
+    # plotter.add_mesh(surf)
+    # arrows = surf.point_normals
+    # plotter.add_arrows(surf.points, arrows)
+    # plotter.show()
 
 if __name__ == "__main__":
     helpers.default_log_config()

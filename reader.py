@@ -5,7 +5,6 @@ import typing
 import meshio
 import meshio._mesh # type: ignore
 import pyvista
-import pyvista.core.dataset
 import pickle
 import pandas
 import numpy as np
@@ -223,7 +222,35 @@ def get_numerical_kernel_output(file_path: Path, instruments: list[UserInstrumen
         surface_potential=load_time_series(
             file_path / "Average_surface_potential_of_node_0_(V_,_s)__ElecNode0_Potential.txt"
         ),
+
     )
+
+
+def load_particle_trajectories(path: Path) -> list[ParticleTrajectory]:
+    result: list[ParticleTrajectory] = []
+
+    for i in get_files_matching_start_and_end(path, "electron_from", "trajectory.nc_mesh.msh"):
+        mesh = load_mesh(i)
+
+        file_string = i.name.split("_")
+
+        time = float(file_string[-2].removesuffix("strajectory.nc"))
+
+        pid = int(file_string[-5])
+
+        data = mesh.mesh.points.tolist()
+
+        name = i.name
+
+        result.append(ParticleTrajectory(
+            name=name,
+            particle_id=pid,
+            time=time,
+            data=data,
+        ))
+
+    return result
+
 
 
 def get_particle_detector(path: Path, instrument: UserInstrument) -> ParticleDetector:
@@ -608,6 +635,8 @@ def get_extracted_datafields(path: Path) -> ExtractedDataFields:
         volume_vertex=volume_vertex,
         spacecraft_mesh=spacecraft_mesh,
         display_vol_mesh=display_vol_mesh,
+
+        particle_trajectories=load_particle_trajectories(path),
     )
 
 
