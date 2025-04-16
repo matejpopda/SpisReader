@@ -11,8 +11,9 @@ import pyvista
 import pyvista.plotting.plotter
 
 import matplotlib
-matplotlib.use('TKAgg')
-log.getLogger('matplotlib.font_manager').setLevel(log.ERROR)
+
+matplotlib.use("TKAgg")
+log.getLogger("matplotlib.font_manager").setLevel(log.ERROR)
 
 
 @helpers.log_function_entry_and_exit
@@ -25,24 +26,17 @@ def main():
 
     mesh = plotters.glob_properties(result, "*spacecraft*")[0][0]
 
-    
-
-
     utils.generate_efield_vector_property(result)
 
     detector = electron_detector.ElectronDetector(result)
     detector.backtrack()
-
-
 
     plotters.interactive_plot_mesh_with_typed_trajectories(mesh, detector.get_typed_trajectories())
 
     # trajectories = [x.data for x in result.extracted_data_fields.particle_trajectories]
     # plotters.interactive_plot_mesh_with_trajectories(mesh, trajectories)
 
-
     detector.result_accumulator.plot()
-
 
     # plotters.plot_final_quantities(result)
 
@@ -68,7 +62,6 @@ def main():
     plotters.make_gif_xz_slice(total_charge, "plasma_pot")
     log.info("stopped plotting gif")
 
-
     #### Drawing normals
     # plotter = pyvista.plotting.plotter.Plotter()
     # surf =   mesh.mesh.extract_surface()
@@ -76,6 +69,7 @@ def main():
     # arrows = surf.point_normals
     # plotter.add_arrows(surf.points, arrows)
     # plotter.show()
+
 
 if __name__ == "__main__":
     helpers.default_log_config()

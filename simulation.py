@@ -121,18 +121,17 @@ class ExtractedDataFields:
     spacecraft_mesh: "Mesh"
     display_vol_mesh: "Mesh"
 
-
     particle_trajectories: list["ParticleTrajectory"]
     """*trajectory.nc_mesh.msh"""
+
 
 @dataclass(kw_only=True)
 class ParticleTrajectory:
     name: str
-    particle_id: int 
+    particle_id: int
     time: float
 
-    data: list[tuple[float, float,float]]
-
+    data: list[tuple[float, float, float]]
 
 
 @dataclass(kw_only=True)
@@ -161,9 +160,6 @@ class NumericalResults:
 
     total_current: "TimeSeries"
     """Total_current_on_spacecraft_surface*.txt"""
-
-
-
 
 
 @dataclass(kw_only=True)
@@ -220,7 +216,6 @@ class ParticleDetector:
     velocity_2df: list["Distribution2D"]
     """[name]_Velocity2DF_at_t=*s.txt"""
 
-
     def __str__(self):
         return "Particle detector - " + self.name
 
@@ -242,7 +237,6 @@ class Mesh:
 
     def __post_init__(self):
         self.__class__.instance_list.add(self)
-
 
     def __str__(self):
         return "Mesh class - " + self.name
@@ -272,8 +266,6 @@ class Distribution2D:
 
     def __post_init__(self):
         self.__class__.instance_list.add(self)
-
-
 
 
 @dataclass(kw_only=True)
@@ -309,7 +301,6 @@ class ParticleList:
         self.__class__.instance_list.add(self)
 
 
-
 @dataclass(kw_only=True)
 class Simulation:
     """Class encapsulating the whole simulation output from SPIS"""
@@ -320,7 +311,6 @@ class Simulation:
     @property
     def extracted_data_fields(self):
         return self.results.extracted_data_fields
-    
 
     @property
     def user_instruments(self):
@@ -330,6 +320,6 @@ class Simulation:
     def particle_detectors(self):
         return self.results.numerical_kernel_output.particle_detectors
 
-    @property 
+    @property
     def time_steps(self):
         return self.results.numerical_kernel_output.time_steps
