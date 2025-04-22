@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass, field
 import pyvista
-import pyvista.core.dataset
+import pyvista.core.pointset
 import pandas
 import xarray
 import typing
@@ -122,6 +122,19 @@ class ExtractedDataFields:
     display_vol_mesh: "Mesh"
 
 
+    particle_trajectories: list["ParticleTrajectory"]
+    """*trajectory.nc_mesh.msh"""
+
+@dataclass(kw_only=True)
+class ParticleTrajectory:
+    name: str
+    particle_id: int 
+    time: float
+
+    data: list[tuple[float, float,float]]
+
+
+
 @dataclass(kw_only=True)
 class NumericalResults:
     """Encapsulates data from the numerical kernel"""
@@ -148,6 +161,9 @@ class NumericalResults:
 
     total_current: "TimeSeries"
     """Total_current_on_spacecraft_surface*.txt"""
+
+
+
 
 
 @dataclass(kw_only=True)

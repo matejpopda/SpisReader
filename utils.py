@@ -2,7 +2,6 @@ from simulation import *
 import fnmatch
 import reader
 import numpy as np
-import math
 import numpy.typing as npt
 import typing
 

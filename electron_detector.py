@@ -80,7 +80,7 @@ class ScatterResultAccumulator(ResultAccumulator):
         # find min max
         minimum = 10
         maximum = 0
-        for i in self.particle_origins_miss_spacecraft:
+        for i in self.particle_origins_miss_spacecraft + self.particle_origins_hit_spacecraft:
             pos = i[0]
             alpha = i[1]
 
@@ -95,7 +95,7 @@ class ScatterResultAccumulator(ResultAccumulator):
             pos = i[0]
             alpha = i[1]
 
-            print(alpha/maximum)
+            # print(alpha/maximum)
 
             xx.append(pos[0])
             yy.append(pos[1])
@@ -107,14 +107,20 @@ class ScatterResultAccumulator(ResultAccumulator):
 
         hit_x = []
         hit_y = []
+
+        hit_cc = []
         for i in self.particle_origins_hit_spacecraft:
             pos = i[0]
             alpha = i[1]
 
+            # print(alpha/maximum)
+
             hit_x.append(pos[0])
             hit_y.append(pos[1])
+            hit_cc.append(alpha)   
 
-            plt.scatter(pos[0], pos[1], c="red", alpha=alpha)
+            # plt.scatter(pos[0], pos[1], c="red", marker="X", alpha=alpha)
+        plt.scatter(hit_x,hit_y,c=hit_cc, cmap="viridis")
 
         for i in self.particle_origins_unknown:
             pos = i[0]
@@ -147,34 +153,44 @@ class ElectronDetector:
         self.acceptance_angle: float = np.pi
 
         ## 2, 14, 50 
-        self.max_energy : float = 14
-        self.min_energy : float = 14
+        self.max_energy : float = 50
+        self.min_energy : float = 50
 
         self.time: float
         self.dt: float = 12 / (18755372 * 1)
 
-        self.number_of_samples_y: int = 20
-        self.number_of_samples_x: int = 10
+        self.number_of_samples_y: int = 14
+        self.number_of_samples_x: int = 14
         
-        self.number_of_steps: int = 40
+        self.number_of_steps: int = 30
 
 
         self.simulation: simulation.Simulation = data
 
         self.result_accumulator : ResultAccumulator = ScatterResultAccumulator()
 
+
+        # probability calc
         self.boundary_temperature = 103000 #for 8.9 eV
 
+
+
         # Settings for random drawing
-        self.monte_carlo = True
-        self.number_of_samples: int = 600
+        self.monte_carlo = False
+        self.number_of_samples: int = 150
         
 
         # normalize orientation vectors
         self.orientation = utils.normalize(self.orientation)
         self.updirection = utils.normalize(self.updirection)
 
-        self.mesh = utils.generate_efield_vector_property(self.simulation) # Contains "vector_electric_field"
+        self.e_field_mesh = utils.generate_efield_vector_property(self.simulation) # Contains "vector_electric_field"
+        density_val = utils.glob_properties(self.simulation, "final_elec1_charge_density*")
+        assert len(density_val) == 1 
+        self.density_name = density_val[0][1]
+        self.mesh = density_val[0][0]
+        self.charge_density_gradient = density_val[0][0].mesh.compute_derivative(scalars=self.density_name)
+
 
 
     def get_trajectories(self):
@@ -192,7 +208,10 @@ class ElectronDetector:
 
 
     def backtrack_monte_carlo(self):
-        for _ in range(self.number_of_samples):
+        for i in range(self.number_of_samples):
+            if i % 50 == 0:
+                print("sample", i, " from ", self.number_of_samples)
+
             electron = self.generate_electron()
 
             self.backtrack_one_electron(electron)
@@ -242,8 +261,13 @@ class ElectronDetector:
                 if self.check_boundary_collision(electron):
                     colided = True
                     electron.collision_type = CollisionTypes.Boundary
-                if self.detect_colission_SC(electron):
+
+                SC_collisions = self.detect_colission_SC(electron)
+                if len(SC_collisions) > 0:
                     colided = True
+                    electron.position = self.get_position_after_collision(SC_collisions, electron)
+
+
                     electron.collision_type = CollisionTypes.Spacecraft
                 if step > self.number_of_steps:
                     colided = True
@@ -251,11 +275,68 @@ class ElectronDetector:
             
             self.calculate_probability(electron)
 
+    def get_position_after_collision(self, collisions: "list[int]", electron: Electron) -> Vector3D:
+        spacecraft_mesh = self.simulation.results.extracted_data_fields.spacecraft_face.mesh
+        
+        distance = 1000000
+        result = None
+
+        assert len(collisions) > 0
+        for id in collisions:
+            # spacecraft_mesh.extract_cells(id)
+            point = spacecraft_mesh.cell_centers().points[id]
+            norm = np.linalg.norm(point - electron.previous_position)
+            if norm < distance:
+                distance = norm
+                result = point
+
+
+        # print(result)
+        reverse_dir = np.array(electron.position) - np.array(electron.previous_position)
+        reverse_offset = reverse_dir/np.linalg.norm(reverse_dir) * 0.000001
+
+        result =  result + reverse_offset
+
+        # print(result)
+        return result + reverse_offset
+            
+
+
 
     def calculate_probability(self, electron: Electron) -> None:
         if electron.collision_type == CollisionTypes.Boundary:
             electron.probability = self.calculate_probability_boundary(electron)
             # print(electron.probability)
+        if electron.collision_type == CollisionTypes.Spacecraft:
+            electron.probability = self.calculate_probability_spacecraft(electron)
+
+
+    def calculate_probability_spacecraft(self, electron: Electron):
+        def calculate_temperature_from_plasma_potential():
+            position = electron.position
+
+
+            density = - self.get_density(position)
+            gradient_density = self.get_gradient_of_density(position)
+            electric_field = self.get_electric_field(position)
+
+
+            gradient_density = np.linalg.norm(gradient_density)
+            electric_field = np.linalg.norm(electric_field)
+
+            temperature = (consts.elementary_charge / consts.k ) * (density / gradient_density) * electric_field
+
+            return temperature
+
+        def norm_distribution_speed(vec: Vector3D) -> float:
+            x = np.sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2])
+            kb = consts.k
+            me = consts.electron_mass
+            T = calculate_temperature_from_plasma_potential()
+            return np.sqrt(2/np.pi) * np.power(me/(kb * T), 3/2) * (x**2) * np.exp(-me*x**2/(2*kb*T))
+
+        
+        return norm_distribution_speed(electron.velocity)        
 
 
     def calculate_probability_boundary(self, electron:Electron):
@@ -269,13 +350,29 @@ class ElectronDetector:
         return norm_distribution_speed(electron.velocity)
 
     def get_electric_field(self, position: Vector3D) -> Vector3D:
-        id: int = self.mesh.find_containing_cell(position) #type: ignore 
+        id: int = self.e_field_mesh.find_closest_cell(position) #type: ignore 
         if id == -1: 
             raise Exception
-        result = self.mesh["vector_electric_field"][id]
+        result = self.e_field_mesh["vector_electric_field"][id]
         return result
 
+    def get_density(self, position: Vector3D) -> float:
+        # id: int = self.mesh.mesh.find_containing_cell(position) #type: ignore 
+        id: int = self.mesh.mesh.find_closest_point(position)
+        if id == -1: 
+            raise Exception
+            
+        result = self.mesh.mesh[self.density_name][id]
+        return result
     
+    def get_gradient_of_density(self, position: Vector3D) -> Vector3D:
+        # id: int = self.charge_density_gradient.find_containing_cell(position) #type: ignore 
+        id: int = self.charge_density_gradient.find_closest_point(position)
+        if id == -1: 
+            raise Exception
+        result = self.charge_density_gradient["gradient"][id]
+        return result
+
 
     def check_boundary_collision(self, electron :Electron) -> bool:
         if np.linalg.norm(electron.position) > 15:
@@ -297,24 +394,27 @@ class ElectronDetector:
 
         return
 
-    def detect_colission_SC(self, electron: Electron) -> bool:
+    def detect_colission_SC(self, electron: Electron):
         spacecraft_mesh = self.simulation.results.extracted_data_fields.spacecraft_face.mesh
 
         colided_faces_SC: list[Any] = spacecraft_mesh.find_cells_intersecting_line(electron.previous_position, #type: ignore
                                                                                    electron.position) 
-        return len(colided_faces_SC) > 0 
+        
+
+
+        return colided_faces_SC 
     
 
     def generate_electron_at_angle(self, x: float,y: float):
         
         
 
-        # origin = np.array([x,y])
+        origin = np.array([x,y])
 
         position = self._get_starting_position_angle(x,y)
 
 
-        origin = self._map_point_into_2d_plane(self._get_starting_position_direction(x,y))
+        # origin = self._map_point_into_2d_plane(self._get_starting_position_direction(x,y))
 
         energy = random.uniform(self.min_energy,self.max_energy) *  scipy.constants.eV
 
