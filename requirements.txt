@@ -4,3 +4,5 @@ pandas
 xarray
 netCDF4
 imageio
+sparse
+scipy

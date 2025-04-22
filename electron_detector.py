@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import scipy.constants as consts
 import pandas as pd 
 
+import default_settings
+
 Vector3D: TypeAlias = np.ndarray[tuple[Literal[3]], np.dtype[np.float64]]
 Vector2D: TypeAlias = np.ndarray[tuple[Literal[2]], np.dtype[np.float64]]
 
@@ -123,13 +125,13 @@ class ScatterResultAccumulator(ResultAccumulator):
          'Y_position': yy,
          'value': cc}
         df = pd.DataFrame.from_dict(data)
-        df.to_csv('boundary.csv')
+        df.to_csv(default_settings.Settings.default_output_path / 'boundary.csv')
 
 
         data = {'X_position': hit_x,
          'Y_position': hit_y}
         df = pd.DataFrame.from_dict(data)
-        df.to_csv('spacecraft.csv')
+        df.to_csv(default_settings.Settings.default_output_path / 'spacecraft.csv')
 
         plt.show()
 
