@@ -13,7 +13,8 @@ matplotlib.use('TKAgg')
 
 @helpers.log_function_entry_and_exit
 def main():
-    path = pathlib.Path("C:/Users/matej/Desktop/VU/data_efield/SOLO06.spis5/SOLO06")
+    # path = pathlib.Path("C:/Users/matej/Desktop/VU/data_efield/SOLO06.spis5/SOLO06")
+    path = pathlib.Path("C:/temp/DP/SOLO06.spis5/SOLO06")
 
     default_settings.Settings.print_current_settings()
 
@@ -27,7 +28,7 @@ def main():
     detector.backtrack()
 
     mesh = plotters.glob_properties(result, "*spacecraft*")[0][0]
-    # plotters.interactive_plot_mesh_with_typed_trajectories(mesh, detector.get_typed_trajectories())
+    plotters.interactive_plot_mesh_with_typed_trajectories(mesh, detector.get_typed_trajectories())
 
 
     detector.result_accumulator.plot()
