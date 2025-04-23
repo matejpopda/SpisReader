@@ -152,8 +152,6 @@ def interactive_plot_mesh_with_typed_trajectories(mesh: DataSet, trajectories: l
             color = "red"
         if trajectory[1] == CollisionTypes.Boundary:
             color = "blue"
-        
-
         plotter.add_mesh(line, color=color) # type: ignore
     plotter.show()  # type: ignore
 

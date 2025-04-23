@@ -45,7 +45,9 @@ class Electron:
 
     position_history: list[Vector3D] = dataclasses.field(default_factory=list)
 
-    probability: float|None = None
+    probability_ambient: float|None = None
+    probability_photo: float|None = None
+    probability_secondary: float|None = None
 
 
 class ResultAccumulator():
@@ -55,7 +57,7 @@ class ResultAccumulator():
     def plot(self):
         pass
 
-class ScatterResultAccumulator(ResultAccumulator):
+class TripColorResultAccumulator(ResultAccumulator):
     def __init__(self) -> None:
         super().__init__()
         self.particle_origins_hit_spacecraft: list[Tuple[Vector2D, float]] = []
@@ -65,8 +67,8 @@ class ScatterResultAccumulator(ResultAccumulator):
     def add_particle(self, electron: Electron):
         x = electron.origin
 
-        alpha = electron.probability if electron.probability is not None else 1
-
+        alpha = electron.probability_ambient if electron.probability_ambient is not None else None
+        alpha = electron.probability_secondary if electron.probability_secondary is not None else 1
 
         if electron.collision_type == CollisionTypes.Boundary:
             self.particle_origins_miss_spacecraft.append((x, alpha))
@@ -100,8 +102,8 @@ class ScatterResultAccumulator(ResultAccumulator):
             xx.append(pos[0])
             yy.append(pos[1])
             cc.append(alpha)            
-            # plt.scatter(pos[0], pos[1], c=alpha/maximum, cmap="inferno")
-        plt.scatter(xx,yy,c=cc, cmap="viridis")
+
+        plt.tripcolor(xx,yy,cc, cmap="viridis")
         plt.colorbar()
 
 
@@ -119,8 +121,8 @@ class ScatterResultAccumulator(ResultAccumulator):
             hit_y.append(pos[1])
             hit_cc.append(alpha)   
 
-            # plt.scatter(pos[0], pos[1], c="red", marker="X", alpha=alpha)
-        plt.scatter(hit_x,hit_y,c=hit_cc, cmap="viridis")
+        
+        plt.tripcolor(hit_x,hit_y,hit_cc, cmap="viridis")
 
         for i in self.particle_origins_unknown:
             pos = i[0]
@@ -141,26 +143,99 @@ class ScatterResultAccumulator(ResultAccumulator):
 
         plt.show()
 
+class ScatterResultAccumulator(ResultAccumulator):
+    def __init__(self) -> None:
+        super().__init__()
+        self.particles: list[Electron] = []
+
+    def add_particle(self, electron: Electron):
+
+        self.particles.append(electron)
+
+    def plot(self):
+        
+        # find global min max
+        minimum = 10
+        maximum = 0
+        for i in self.particles:
+            for current_val in [i.probability_ambient, i.probability_photo, i.probability_secondary]:
+                if current_val is None:
+                    break
+                minimum = min(minimum, current_val)
+                maximum = max(maximum, current_val)
+
+        ambient_xx  = []
+        ambient_yy = []
+        ambient_cc = []
+        for i in self.particles:
+            ambient_xx.append(i.origin[0])
+            ambient_yy.append(i.origin[1])
+            if i.probability_ambient is not None:
+                ambient_cc.append(i.probability_ambient)
+            else: 
+                ambient_cc.append(0)        
+
+        plt.scatter(ambient_xx,ambient_yy,c=ambient_cc, cmap="viridis")
+        # plt.tripcolor(xx,yy,cc, cmap="viridis")
+        plt.colorbar()
+        plt.show()
+
+
+        see_xx  = []
+        see_yy = []
+        see_cc = []
+        for i in self.particles:
+            see_xx.append(i.origin[0])
+            see_yy.append(i.origin[1])
+            if i.probability_secondary is not None:
+                see_cc.append(i.probability_secondary)
+            else: 
+                see_cc.append(0)        
+
+        plt.scatter(see_xx,see_yy,c=see_cc, cmap="viridis")
+        # plt.tripcolor(xx,yy,cc, cmap="viridis")
+        plt.colorbar()
+        plt.show()
+
+
+        photo_xx  = []
+        photo_yy = []
+        photo_cc = []
+        for i in self.particles:
+            photo_xx.append(i.origin[0])
+            photo_yy.append(i.origin[1])
+            if i.probability_photo is not None:
+                photo_cc.append(i.probability_photo)
+            else: 
+                photo_cc.append(0)        
+
+        plt.scatter(photo_xx,photo_yy,c=photo_cc, cmap="viridis")
+        # plt.tripcolor(xx,yy,cc, cmap="viridis")
+        plt.colorbar()
+        plt.show()
+
+
 
 
 class ElectronDetector:
     def __init__(self, data: simulation.Simulation) -> None:
         self.particles: list[Electron] = []
         self.position: Vector3D = np.array([3.4466, 0,-0.135])
-        self.orientation: Vector3D = np.array([0, 0, -1])
-        self.updirection: Vector3D = np.array([1, 0 ,0])
+        self.orientation: Vector3D = np.array([-1, 0, 0])
+        self.updirection: Vector3D = np.array([0, 1 ,0])
         self.radius: float = 0.15
-        self.acceptance_angle: float = np.pi
+        self.acceptance_angle_phi: float = np.pi * 1.5 
+        self.acceptance_angle_theta: float = np.pi /1.5
 
         ## 2, 14, 50 
-        self.max_energy : float = 50
-        self.min_energy : float = 50
+        self.max_energy : float = 2
+        self.min_energy : float = 2
 
         self.time: float
         self.dt: float = 12 / (18755372 * 1)
 
-        self.number_of_samples_y: int = 14
-        self.number_of_samples_x: int = 14
+        self.number_of_samples_theta: int = 15
+        self.number_of_samples_phi: int = 15
         
         self.number_of_steps: int = 30
 
@@ -222,10 +297,58 @@ class ElectronDetector:
         return 
     
     def backtrack_grid(self):
-        for x in np.linspace(0, np.pi, num=self.number_of_samples_x):
-            print(x)
-            for y in np.linspace(-np.pi, np.pi, num=self.number_of_samples_y): 
-                electron = self.generate_electron_at_angle(x,y)
+        
+
+        def normalize(v: Vector3D) -> Vector3D:
+            return v / np.linalg.norm(v)
+
+        forward = normalize(self.orientation)
+        right = normalize(np.cross(forward, self.updirection))
+        true_up = np.cross(right, forward)
+
+
+        thetas = np.linspace(-self.acceptance_angle_theta/2, self.acceptance_angle_theta/2, self.number_of_samples_theta)
+        phis = np.linspace(-self.acceptance_angle_phi/2, self.acceptance_angle_phi/2, self.number_of_samples_phi)
+
+        directions = []
+        for phi in phis:
+            row = []
+            for theta in thetas:
+                # Local spherical direction in camera space
+                x = np.sin(theta) * np.cos(phi)
+                y = np.sin(phi)
+                z = np.cos(theta) * np.cos(phi)
+                # local_dir = np.array([x, y, z])
+                
+                # Rotate into world space using camera basis
+                world_dir = (
+                    x * right +
+                    y * true_up +
+                    z * forward
+                )
+                world_dir = normalize(world_dir)
+                row.append(world_dir)
+            directions.append(row)
+
+        # acceptance_angle_modifier = self.acceptance_angle / (2*np.pi)
+        
+        # rotate_y = 0
+        # rotate_x = -np.pi
+
+        # start_y = (-np.pi/2 + rotate_y) * acceptance_angle_modifier
+        # end_y = (np.pi/2 + rotate_y) * acceptance_angle_modifier
+        # start_x = (-np.pi + rotate_x) * acceptance_angle_modifier
+        # end_x = (np.pi + rotate_x) * acceptance_angle_modifier
+
+
+
+
+        for n, y in enumerate(directions):
+            print("Backtracking: row", n+1, " out of ", self.number_of_samples_theta)
+            for m, x in enumerate(y): 
+
+
+                electron = self.generate_electron_vector(x, (thetas[n], phis[m]))
 
                 self.backtrack_one_electron(electron)
 
@@ -305,42 +428,47 @@ class ElectronDetector:
 
     def calculate_probability(self, electron: Electron) -> None:
         if electron.collision_type == CollisionTypes.Boundary:
-            electron.probability = self.calculate_probability_boundary(electron)
+            electron.probability_ambient = self.calculate_probability_boundary(electron)
             # print(electron.probability)
         if electron.collision_type == CollisionTypes.Spacecraft:
-            electron.probability = self.calculate_probability_spacecraft(electron)
-
+            self.calculate_probability_spacecraft(electron)
+            # electron.probability_photo = self.calculate_probability_spacecraft_photo(electron)
 
     def calculate_probability_spacecraft(self, electron: Electron):
-        def calculate_temperature_from_plasma_potential():
-            position = electron.position
+        def get_temperature_SEEE():
+            return 2 # TODO 
+        
+        def get_temperature_photo():
+            return 3 #TODO
 
-
-            density = - self.get_density(position)
-            gradient_density = self.get_gradient_of_density(position)
-            electric_field = self.get_electric_field(position)
-
-
-            gradient_density = np.linalg.norm(gradient_density)
-            electric_field = np.linalg.norm(electric_field)
-
-            temperature = (consts.elementary_charge / consts.k ) * (density / gradient_density) * electric_field
-
-            return temperature
-
-        def norm_distribution_speed(vec: Vector3D) -> float:
+        def norm_distribution_speed(vec: Vector3D, temperature: float) -> float:
+            print("SEEE" , vec)
             x = np.sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2])
             kb = consts.k
             me = consts.electron_mass
-            T = calculate_temperature_from_plasma_potential()
-            return np.sqrt(2/np.pi) * np.power(me/(kb * T), 3/2) * (x**2) * np.exp(-me*x**2/(2*kb*T))
+            temperature = temperature
+            result = np.sqrt(2/np.pi) * np.power(me/(kb * temperature), 3/2) * (x**2) * np.exp(-me*x**2/(2*kb*temperature))
+            first = np.sqrt(2/np.pi) * np.power(me/(kb * temperature), 3/2)
+            second = (x**2) * np.exp(-me*x**2/(2*kb*temperature))
+
+            result = first * second
+            print("SEE CALC", first, second, result, "Argument", -me*x**2/(2*kb*temperature))
+            print(format(result, '.60g'))
+            return result
 
         
-        return norm_distribution_speed(electron.velocity)        
+        electron.probability_secondary = norm_distribution_speed(electron.velocity, get_temperature_SEEE())
+
+        if self.detect_if_sun_visible_photoelectrons(electron): 
+            electron.probability_photo = norm_distribution_speed(electron.velocity, get_temperature_photo())
+        
+
+        return True        
 
 
     def calculate_probability_boundary(self, electron:Electron):
         def norm_distribution_speed(vec: Vector3D) -> float:
+            print("Boundary", vec)
             x = np.sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2])
             kb = consts.k
             me = consts.electron_mass
@@ -400,9 +528,40 @@ class ElectronDetector:
         colided_faces_SC: list[Any] = spacecraft_mesh.find_cells_intersecting_line(electron.previous_position, #type: ignore
                                                                                    electron.position) 
         
-
-
         return colided_faces_SC 
+    
+    def detect_if_sun_visible_photoelectrons(self, electron: Electron):
+        spacecraft_mesh = self.simulation.results.extracted_data_fields.spacecraft_face.mesh
+
+        sun_direction = [-1, 0, 0] # TODO
+
+        ray = [electron.position[i] + 1000 * sun_direction[i] for i in range(3) ]
+
+        colided_faces_SC: list[Any] = spacecraft_mesh.find_cells_intersecting_line(electron.position, #type: ignore
+                                                                                   ray) 
+        
+        return len(colided_faces_SC) > 0  
+    
+
+    def generate_electron_vector(self, direction: Vector3D, angle: Vector2D):
+        origin = angle
+
+        position = self.position + direction*self.radius 
+
+
+        # origin = self._map_point_into_2d_plane(self._get_starting_position_direction(x,y))
+
+        energy = random.uniform(self.min_energy,self.max_energy) *  scipy.constants.eV
+
+        velocity = self._get_starting_velocity(position, energy)
+        print("velocity", velocity)
+
+
+        result = Electron(origin=origin, position=position, 
+                          previous_position=position, velocity=velocity, previous_velocity=velocity, starting_energy=energy)
+
+        self.particles.append(result)
+        return result
     
 
     def generate_electron_at_angle(self, x: float,y: float):
