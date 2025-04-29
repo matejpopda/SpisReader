@@ -116,5 +116,5 @@ def allow_mesh(
 
 def check_and_create_folder(path: Path) -> None:
     if not path.exists():
-        log.warn(f"Output folder {str(path.resolve())} does not exist, creating it")
+        log.warning(f"Output folder {str(path.resolve())} does not exist, creating it")
         path.mkdir()
