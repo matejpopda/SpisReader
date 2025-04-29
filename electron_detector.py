@@ -10,6 +10,8 @@ import utils
 import matplotlib.pyplot as plt
 import scipy.constants as consts
 import pandas as pd 
+import pickle
+
 
 import default_settings
 
@@ -25,6 +27,11 @@ class CollisionTypes(Enum):
     Spacecraft = 1 
     Boundary = 2 
     Too_many_steps = 3 
+
+class BacktrackingTypes(Enum):
+    Euler = 0
+    Boris = 1 
+    RK = 2 
 
 @dataclass
 class Electron:
@@ -51,105 +58,98 @@ class Electron:
 
 
 class ResultAccumulator():
+    def __init__(self) -> None:
+        self.particles: list[Electron] = []
     def add_particle(self, electron: Electron):
         pass
 
     def plot(self):
         pass
+
+    def save(self):
+        pass
+        # data = {'X_position': hit_x,
+        #  'Y_position': hit_y}
+        # df = pd.DataFrame.from_dict(data)
+        # df.to_csv(default_settings.Settings.default_output_path / 'spacecraft.csv')
+
 
 class TripColorResultAccumulator(ResultAccumulator):
     def __init__(self) -> None:
         super().__init__()
-        self.particle_origins_hit_spacecraft: list[Tuple[Vector2D, float]] = []
-        self.particle_origins_miss_spacecraft: list[Tuple[Vector2D, float]]  = []
-        self.particle_origins_unknown: list[Tuple[Vector2D, float]]  = []
+        self.particles: list[Electron] = []
 
     def add_particle(self, electron: Electron):
-        x = electron.origin
-
-        alpha = electron.probability_ambient if electron.probability_ambient is not None else None
-        alpha = electron.probability_secondary if electron.probability_secondary is not None else 1
-
-        if electron.collision_type == CollisionTypes.Boundary:
-            self.particle_origins_miss_spacecraft.append((x, alpha))
-        elif electron.collision_type == CollisionTypes.Spacecraft:
-            self.particle_origins_hit_spacecraft.append((x, alpha))
-        else:
-            self.particle_origins_unknown.append((x, alpha))
+        self.particles.append(electron)
 
     def plot(self):
         
-        # find min max
+        # find global min max
         minimum = 10
         maximum = 0
-        for i in self.particle_origins_miss_spacecraft + self.particle_origins_hit_spacecraft:
-            pos = i[0]
-            alpha = i[1]
+        for i in self.particles:
+            for current_val in [i.probability_ambient, i.probability_photo, i.probability_secondary]:
+                if current_val is None:
+                    break
+                minimum = min(minimum, current_val)
+                maximum = max(maximum, current_val)
 
-            minimum = min(minimum, alpha)
-            maximum = max(maximum, alpha)
+        ambient_xx  = []
+        ambient_yy = []
+        ambient_cc = []
+        for i in self.particles:
+            ambient_xx.append(i.origin[0])
+            ambient_yy.append(i.origin[1])
+            if i.probability_ambient is not None:
+                ambient_cc.append(i.probability_ambient)
+            else: 
+                ambient_cc.append(0)        
 
-
-        xx = []
-        yy = []
-        cc = []
-        for i in self.particle_origins_miss_spacecraft:
-            pos = i[0]
-            alpha = i[1]
-
-            # print(alpha/maximum)
-
-            xx.append(pos[0])
-            yy.append(pos[1])
-            cc.append(alpha)            
-
-        plt.tripcolor(xx,yy,cc, cmap="viridis")
+        # plt.scatter(ambient_xx,ambient_yy,c=ambient_cc, cmap="viridis")
+        plt.tripcolor(ambient_xx,ambient_yy,ambient_cc, cmap="viridis")
         plt.colorbar()
-
-
-        hit_x = []
-        hit_y = []
-
-        hit_cc = []
-        for i in self.particle_origins_hit_spacecraft:
-            pos = i[0]
-            alpha = i[1]
-
-            # print(alpha/maximum)
-
-            hit_x.append(pos[0])
-            hit_y.append(pos[1])
-            hit_cc.append(alpha)   
-
-        
-        plt.tripcolor(hit_x,hit_y,hit_cc, cmap="viridis")
-
-        for i in self.particle_origins_unknown:
-            pos = i[0]
-            alpha = i[1]
-            plt.scatter(pos[0], pos[1], c="black", alpha=alpha)
-
-        data = {'X_position': xx,
-         'Y_position': yy,
-         'value': cc}
-        df = pd.DataFrame.from_dict(data)
-        df.to_csv(default_settings.Settings.default_output_path / 'boundary.csv')
-
-
-        data = {'X_position': hit_x,
-         'Y_position': hit_y}
-        df = pd.DataFrame.from_dict(data)
-        df.to_csv(default_settings.Settings.default_output_path / 'spacecraft.csv')
-
         plt.show()
 
+
+        see_xx  = []
+        see_yy = []
+        see_cc = []
+        for i in self.particles:
+            see_xx.append(i.origin[0])
+            see_yy.append(i.origin[1])
+            if i.probability_secondary is not None:
+                see_cc.append(i.probability_secondary)
+            else: 
+                see_cc.append(0)        
+
+        plt.tripcolor(see_xx,see_yy,see_cc, cmap="viridis")
+        plt.colorbar()
+        plt.show()
+
+
+        photo_xx  = []
+        photo_yy = []
+        photo_cc = []
+        for i in self.particles:
+            photo_xx.append(i.origin[0])
+            photo_yy.append(i.origin[1])
+            if i.probability_photo is not None:
+                photo_cc.append(i.probability_photo)
+            else: 
+                photo_cc.append(0) 
+
+        plt.tripcolor(photo_xx,photo_yy,photo_cc, cmap="viridis")
+        plt.colorbar()
+        plt.show()
+
+
+# DEPRECATED
 class ScatterResultAccumulator(ResultAccumulator):
     def __init__(self) -> None:
         super().__init__()
         self.particles: list[Electron] = []
 
     def add_particle(self, electron: Electron):
-
         self.particles.append(electron)
 
     def plot(self):
@@ -217,32 +217,38 @@ class ScatterResultAccumulator(ResultAccumulator):
 
 
 
+
 class ElectronDetector:
-    def __init__(self, data: simulation.Simulation) -> None:
+    def __init__(self, data: simulation.Simulation, energy:float = 15) -> None:
         self.particles: list[Electron] = []
         self.position: Vector3D = np.array([3.4466, 0,-0.135])
         self.orientation: Vector3D = np.array([-1, 0, 0])
-        self.updirection: Vector3D = np.array([0, 1 ,0])
+        self.updirection: Vector3D = np.array([0, 0 ,-1])
         self.radius: float = 0.15
-        self.acceptance_angle_phi: float = np.pi * 1.5 
-        self.acceptance_angle_theta: float = np.pi /1.5
+        self.acceptance_angle_phi: float = np.pi * 2
+        self.acceptance_angle_theta: float = np.pi /1
+        self.backtracking_type: BacktrackingTypes = BacktrackingTypes.Euler
 
-        ## 2, 14, 50 
-        self.max_energy : float = 2
-        self.min_energy : float = 2
+
+        ## 2, 14, 50 in eV
+        self.energy : float = energy
 
         self.time: float
-        self.dt: float = 12 / (18755372 * 1)
 
-        self.number_of_samples_theta: int = 15
-        self.number_of_samples_phi: int = 15
         
-        self.number_of_steps: int = 30
+        # self.dt: float = 12 / (18755372 * (1))
+        self.dt: float = 0.5 / np.sqrt(2 * energy * scipy.constants.eV / scipy.constants.electron_mass)
+
+
+        self.number_of_samples_theta: int = 40
+        self.number_of_samples_phi: int = 40
+        
+        self.number_of_steps: int = 250
 
 
         self.simulation: simulation.Simulation = data
 
-        self.result_accumulator : ResultAccumulator = ScatterResultAccumulator()
+        self.result_accumulator : ResultAccumulator = TripColorResultAccumulator()
 
 
         # probability calc
@@ -275,6 +281,7 @@ class ElectronDetector:
         return result
 
 
+
     def get_typed_trajectories(self):
         result: list[Tuple[list[Vector3D], CollisionTypes]] = []
         for particle in self.particles:
@@ -292,9 +299,13 @@ class ElectronDetector:
             self.backtrack_one_electron(electron)
 
             if electron.collision_type != CollisionTypes.No_collision:
-                self.acumulate_colission(electron)
+                self.accumulate_collision(electron)
 
         return 
+    
+    def save_self(self, filename):
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f)
     
     def backtrack_grid(self):
         
@@ -353,7 +364,7 @@ class ElectronDetector:
                 self.backtrack_one_electron(electron)
 
                 if electron.collision_type != CollisionTypes.No_collision:
-                    self.acumulate_colission(electron)
+                    self.accumulate_collision(electron)
 
         return 
 
@@ -365,36 +376,38 @@ class ElectronDetector:
             self.backtrack_grid()
 
     def backtrack_one_electron(self, electron: Electron):
-            colided = False
-            step = 0
+            collided = False
+            step = 1
+            self.move_backwards(electron, self.dt/10)
 
             electron.position_history.append(electron.position)
-            while not colided:
+            while not collided:
 
                 step += 1 
 
                 try:
                     self.move_backwards(electron, self.dt)
                 except Exception:
-                    colided = True
+                    collided = True
                     electron.collision_type = CollisionTypes.Boundary
 
-                electron.position_history.append(electron.position)
 
                 if self.check_boundary_collision(electron):
-                    colided = True
+                    collided = True
                     electron.collision_type = CollisionTypes.Boundary
 
-                SC_collisions = self.detect_colission_SC(electron)
+                SC_collisions = self.detect_collision_SC(electron)
                 if len(SC_collisions) > 0:
-                    colided = True
+                    collided = True
                     electron.position = self.get_position_after_collision(SC_collisions, electron)
 
 
                     electron.collision_type = CollisionTypes.Spacecraft
                 if step > self.number_of_steps:
-                    colided = True
+                    collided = True
                     electron.collision_type = CollisionTypes.Too_many_steps
+
+                electron.position_history.append(electron.position)
             
             self.calculate_probability(electron)
 
@@ -436,13 +449,13 @@ class ElectronDetector:
 
     def calculate_probability_spacecraft(self, electron: Electron):
         def get_temperature_SEEE():
-            return 2 # TODO 
+            return 2 * 11600# TODO 
         
         def get_temperature_photo():
-            return 3 #TODO
+            return 3 * 11600 #TODO
 
         def norm_distribution_speed(vec: Vector3D, temperature: float) -> float:
-            print("SEEE" , vec)
+            # print("SEEE" , vec)
             x = np.sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2])
             kb = consts.k
             me = consts.electron_mass
@@ -452,8 +465,8 @@ class ElectronDetector:
             second = (x**2) * np.exp(-me*x**2/(2*kb*temperature))
 
             result = first * second
-            print("SEE CALC", first, second, result, "Argument", -me*x**2/(2*kb*temperature))
-            print(format(result, '.60g'))
+            # print("SEE CALC", first, second, result, "Argument", -me*x**2/(2*kb*temperature))
+            # print(format(result, '.60g'))
             return result
 
         
@@ -468,7 +481,7 @@ class ElectronDetector:
 
     def calculate_probability_boundary(self, electron:Electron):
         def norm_distribution_speed(vec: Vector3D) -> float:
-            print("Boundary", vec)
+            # print("Boundary", vec)
             x = np.sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2])
             kb = consts.k
             me = consts.electron_mass
@@ -511,50 +524,100 @@ class ElectronDetector:
 
         E: Vector3D = self.get_electric_field(electron.position)
         
-        new_velocity  = electron.velocity + -dt * (-electron.CHARGE/electron.MASS) * E
-        new_position  = electron.position + -dt * new_velocity
 
-        electron.previous_velocity = electron.velocity
-        electron.previous_position = electron.position
+        if self.backtracking_type == BacktrackingTypes.Euler:
+            # Euler scheme
 
-        electron.velocity = new_velocity
-        electron.position = new_position
+            new_velocity  = electron.velocity + ((-dt) * (-electron.CHARGE/electron.MASS) * E)
+            new_position  = electron.position + ((-dt) * electron.velocity)
+
+            electron.previous_velocity = electron.velocity
+            electron.previous_position = electron.position
+
+            electron.velocity = new_velocity
+            electron.position = new_position
+
+        elif self.backtracking_type == BacktrackingTypes.RK:
+            # Runge-Kutta 2nd order (midpoint method)
+            k1_v = (-electron.CHARGE / electron.MASS) * E
+            k1_x = electron.velocity
+
+            mid_position = electron.position + (-0.5 * dt) * k1_x
+            mid_velocity = electron.velocity + (-0.5 * dt) * k1_v
+
+            E_mid = self.get_electric_field(mid_position)
+            k2_v = (-electron.CHARGE / electron.MASS) * E_mid
+            k2_x = mid_velocity
+
+            new_velocity = electron.velocity + (-dt) * k2_v
+            new_position = electron.position + (-dt) * k2_x
+
+            electron.previous_velocity = electron.velocity
+            electron.previous_position = electron.position
+
+            electron.velocity = new_velocity
+            electron.position = new_position
+
+        elif self.backtracking_type == BacktrackingTypes.Boris:
+            # Boris push without magnetic field
+            qmdt2 = (-electron.CHARGE / electron.MASS) * (dt / 2.0)
+
+            # Half acceleration by E
+            v_minus = electron.velocity + qmdt2 * E
+
+            # B would be here 
+
+            # Half acceleration again
+            v_plus = v_minus + qmdt2 * E
+
+            new_velocity = v_plus
+            new_position = electron.position + (-dt) * v_plus
+
+            electron.previous_velocity = electron.velocity
+            electron.previous_position = electron.position
+
+            electron.velocity = new_velocity
+            electron.position = new_position
 
         return
 
-    def detect_colission_SC(self, electron: Electron):
+    def detect_collision_SC(self, electron: Electron):
         spacecraft_mesh = self.simulation.results.extracted_data_fields.spacecraft_face.mesh
 
-        colided_faces_SC: list[Any] = spacecraft_mesh.find_cells_intersecting_line(electron.previous_position, #type: ignore
+        collided_faces_SC: list[Any] = spacecraft_mesh.find_cells_intersecting_line(electron.previous_position, #type: ignore
                                                                                    electron.position) 
         
-        return colided_faces_SC 
+        return collided_faces_SC 
     
     def detect_if_sun_visible_photoelectrons(self, electron: Electron):
         spacecraft_mesh = self.simulation.results.extracted_data_fields.spacecraft_face.mesh
 
         sun_direction = [-1, 0, 0] # TODO
 
-        ray = [electron.position[i] + 1000 * sun_direction[i] for i in range(3) ]
+        ray = [electron.position[i] + 30 * sun_direction[i] for i in range(3) ]
 
-        colided_faces_SC: list[Any] = spacecraft_mesh.find_cells_intersecting_line(electron.position, #type: ignore
+        collided_faces_SC: list[Any] = spacecraft_mesh.find_cells_intersecting_line(electron.position, #type: ignore
                                                                                    ray) 
+         
+        # print(collided_faces_SC)
+
+        electron.position_history.append(ray)
         
-        return len(colided_faces_SC) > 0  
+        return len(collided_faces_SC) == 0  
     
 
     def generate_electron_vector(self, direction: Vector3D, angle: Vector2D):
-        origin = angle
+        origin = (angle[1], angle[0])
 
         position = self.position + direction*self.radius 
 
 
         # origin = self._map_point_into_2d_plane(self._get_starting_position_direction(x,y))
 
-        energy = random.uniform(self.min_energy,self.max_energy) *  scipy.constants.eV
+        energy = self.energy *  scipy.constants.eV
 
         velocity = self._get_starting_velocity(position, energy)
-        print("velocity", velocity)
+        # print("velocity", velocity)
 
 
         result = Electron(origin=origin, position=position, 
@@ -575,7 +638,7 @@ class ElectronDetector:
 
         # origin = self._map_point_into_2d_plane(self._get_starting_position_direction(x,y))
 
-        energy = random.uniform(self.min_energy,self.max_energy) *  scipy.constants.eV
+        energy = self.energy *  scipy.constants.eV
 
         velocity = self._get_starting_velocity(position, energy)
 
@@ -590,7 +653,7 @@ class ElectronDetector:
         
         while True:
            point_on_a_sphere = self._random_point_unit_sphere()
-           if np.dot(point_on_a_sphere, self.orientation) > np.cos(self.acceptance_angle):
+           if np.dot(point_on_a_sphere, self.orientation) > np.cos(self.acceptance_angle_phi):
                break
         
         
@@ -598,7 +661,7 @@ class ElectronDetector:
 
         position = self._get_starting_position(point_on_a_sphere)
 
-        energy = random.uniform(self.min_energy,self.max_energy) *  scipy.constants.eV
+        energy = self.energy *  scipy.constants.eV
 
         velocity = self._get_starting_velocity(position, energy)
 
@@ -649,8 +712,9 @@ class ElectronDetector:
         
 
         speed = np.sqrt(2 * energy/ Electron.MASS)
-        direction =  self.position - position
-        direction /= np.linalg.norm(direction)
+        direction =   self.position - position
+        direction = direction / np.linalg.norm(direction)
+
         direction *= speed
 
 
@@ -658,5 +722,6 @@ class ElectronDetector:
         return direction
 
 
-    def acumulate_colission(self, electron: Electron):
+    def accumulate_collision(self, electron: Electron):
+
         self.result_accumulator.add_particle(electron)

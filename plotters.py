@@ -16,8 +16,11 @@ import numpy as np
 import numpy.typing as np_typing
 from default_settings import Settings
 import utils
+import matplotlib.pyplot as plt
 
+import random
 from typing import Tuple
+import electron_detector
 from electron_detector import CollisionTypes
 
 log = logging.getLogger(__name__)
@@ -135,8 +138,48 @@ def interactive_plot_mesh_with_trajectories(mesh: DataSet, trajectories: list[li
         # print(trajectory)
         line = pyvista.core.utilities.points.lines_from_points(trajectory) # type: ignore
         plotter.add_mesh(line, color="black") # type: ignore
+
+
     plotter.show()  # type: ignore
 
+
+
+def detectors_to_1d_distribution(detectors: list[electron_detector.ElectronDetector]):
+    energy:list[float] = []
+    p_ambient:list[float] = []
+    p_seee:list[float] = []
+    p_photo:list[float] = []
+
+    def calculate_avg_probability(detector: electron_detector.ElectronDetector):
+        result_ambient = 0
+        result_seee = 0
+        result_photo = 0
+
+        for particle in detector.result_accumulator.particles:
+            if particle.probability_ambient is not None:
+                result_ambient += particle.probability_ambient
+            if particle.probability_secondary is not None:
+                result_seee += particle.probability_secondary
+            if particle.probability_photo is not None:
+                result_photo += particle.probability_photo
+
+        p_ambient.append(result_ambient/len(detector.result_accumulator.particles))
+        p_seee.append(result_seee / len(detector.result_accumulator.particles))
+        p_photo.append(result_photo / len(detector.result_accumulator.particles))
+
+        # p_ambient.append(result_ambient)
+        # p_seee.append(result_seee )
+        # p_photo.append(result_photo )
+
+    for detector in detectors: 
+        energy.append(detector.energy)
+        calculate_avg_probability(detector)
+
+    plt.scatter(energy, p_ambient, c="blue")
+    plt.scatter(energy, p_seee, c="green")
+    plt.scatter(energy, p_photo, c="orange")
+    # plt.yscale('log')  
+    plt.show()
 
 
 @allow_mesh
@@ -144,6 +187,7 @@ def interactive_plot_mesh_with_typed_trajectories(mesh: DataSet, trajectories: l
     plotter = Plotter()
     plotter.add_mesh(mesh, scalars= "gmsh:physical")  # type: ignore
 
+    # plotter.add_mesh(pyvista.core.utilities.points.lines_from_points([[0,0,0], [-10,0,0]]), color="green")
     for trajectory in trajectories:
         # print(trajectory)
         line = pyvista.core.utilities.points.lines_from_points(trajectory[0]) # type: ignore
@@ -153,6 +197,34 @@ def interactive_plot_mesh_with_typed_trajectories(mesh: DataSet, trajectories: l
         if trajectory[1] == CollisionTypes.Boundary:
             color = "blue"
         plotter.add_mesh(line, color=color) # type: ignore
+    plotter.show()  # type: ignore
+
+
+@allow_mesh
+def interactive_plot_electron_detectors(mesh: DataSet, detectors: list[electron_detector.ElectronDetector] ) -> None:
+    plotter = Plotter()
+    plotter.add_mesh(mesh, scalars= "gmsh:physical")  # type: ignore
+
+    # plotter.add_mesh(pyvista.core.utilities.points.lines_from_points([[0,0,0], [-10,0,0]]), color="green")
+    for detector in detectors:
+        # print(trajectory)
+        for particle in detector.result_accumulator.particles:
+            # if not (particle.probability_photo is not None and particle.probability_photo > 0):
+            #     continue
+
+            if particle.position[0] > -1 or particle.collision_type == CollisionTypes.Boundary:
+                continue
+
+
+            line = pyvista.core.utilities.points.lines_from_points(particle.position_history) # type: ignore
+            color = "black"
+            if particle.collision_type == CollisionTypes.Spacecraft:
+                color = "red"
+            if particle.collision_type == CollisionTypes.Boundary:
+                color = "blue"
+            if particle.probability_photo is not None and particle.probability_photo > 0:
+                color = "yellow"
+            plotter.add_mesh(line, color=color) # type: ignore
     plotter.show()  # type: ignore
 
 

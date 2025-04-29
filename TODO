@@ -2,11 +2,6 @@ Use the SPIS generated trajectories to verify that our trajectories are correct 
 
 Use a spis setting to set the temperature of electrons
 
-(Same for photoelectrons + check if sun exposed)
-
-Rotate the output for electron detector plotter
-
-Plot different populations differently
 
 
 Simulate empty box
@@ -15,4 +10,3 @@ Generate multiple energies in one direction
 
 Compare different integration schemes (Also find a method that interpolates electric field)
 
-Electron detector should draw the results without spaces, filled squares 
