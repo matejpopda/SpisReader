@@ -2,7 +2,6 @@ from pathlib import Path
 
 
 class Settings:
-
     # Cut off for extremal values
     percentile: float = 0.05
 
@@ -13,11 +12,10 @@ class Settings:
 
     lazy_loading: bool = True
 
-    reduced_numerical_kernel: bool = True # Only save final times 
-
+    reduced_numerical_kernel: bool = True  # Only save final times
 
     # If set to none, then the pickle is saved in the location where the spis output is
-    default_pickle_path: Path|None = Path("./temp")
+    default_pickle_path: Path | None = Path("./temp")
 
     @classmethod
     def print_current_settings(cls):
@@ -28,4 +26,3 @@ class Settings:
         print(f"Percentile is {cls.percentile}")
         print(f"Load only final times for some of the SPIS outputs is {cls.reduced_numerical_kernel}")
         print("--------------------------------------------------")
-
