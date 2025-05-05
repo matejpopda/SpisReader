@@ -13,6 +13,9 @@ class Settings:
 
     lazy_loading: bool = True
 
+    reduced_numerical_kernel: bool = True # Only save final times 
+
+
     # If set to none, then the pickle is saved in the location where the spis output is
     default_pickle_path: Path|None = Path("./temp")
 
@@ -23,5 +26,6 @@ class Settings:
         print(f"Default output path is {cls.default_output_path}")
         print(f"Lazy loading is {cls.lazy_loading}")
         print(f"Percentile is {cls.percentile}")
+        print(f"Load only final times for some of the SPIS outputs is {cls.reduced_numerical_kernel}")
         print("--------------------------------------------------")
 

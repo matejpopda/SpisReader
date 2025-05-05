@@ -101,7 +101,7 @@ def get_groups(path: Path) -> list[Group]:
         else:
             log.debug(
                 "While parsing groups this element ID had no type:'"
-                + get_text_of_a_child(children, "id")
+                + children.__str__()
                 + "'. Ignoring this element."
             )
     return result
@@ -299,6 +299,9 @@ def ordered_list_of_meshes(path: Path, start_of_file_name: str, end_of_file_name
         result.append(mesh)
 
     result.sort(key=lambda mesh: (mesh.time is None, mesh.time))
+
+    if default_settings.Settings.reduced_numerical_kernel is True: 
+        result = [result.pop()]
     return result
 
 
@@ -330,6 +333,10 @@ def ordered_list_of_distribution2D(
         result.append(distribution)
 
     result.sort(key=lambda distribution: (distribution.time is None, distribution.time))
+
+    if default_settings.Settings.reduced_numerical_kernel is True: 
+        result = [result.pop()]
+    
     return result
 
 
@@ -341,6 +348,9 @@ def ordered_list_of_Moments(path: Path, start_of_file_name: str, end_of_file_nam
         result.append(moments)
 
     result.sort(key=lambda moments: (moments.time is None, moments.time))
+
+    if default_settings.Settings.reduced_numerical_kernel is True: 
+        result = [result.pop()]
     return result
 
 
@@ -494,7 +504,7 @@ def ordered_list_of_particleLists(
 ) -> list[ParticleList]:
     result: list[ParticleList] = []
     for i in get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name):
-        if default_settings.Settings.lazy_loading == True:
+        if default_settings.Settings.lazy_loading == True and False:
             particleLists = lazy_load_particle_list(i)
         else:
             particleLists = load_particle_list(i)
@@ -759,3 +769,4 @@ def load_unloaded_distribution2d(distribution: Distribution2D):
 
 def load_unloaded_particle_list(plist: ParticleList):
     plist.data = load_particle_list(plist.path).data
+

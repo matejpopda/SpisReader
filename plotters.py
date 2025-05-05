@@ -120,7 +120,6 @@ def interactive_plot_physical_mesh(mesh: DataSet) -> None:
 
 
 
-
 @allow_mesh
 def interactive_plot_mesh(mesh: DataSet, property: str) -> None:
     plotter = Plotter()
@@ -143,8 +142,27 @@ def interactive_plot_mesh_with_trajectories(mesh: DataSet, trajectories: list[li
     plotter.show()  # type: ignore
 
 
+def plot_detectors_with_0_acceptance_angle(detectors: list[electron_detector.ElectronDetector]):
+    for detector in detectors:
+        energies = []
+        ambient_probs = []
+        sec_probs = []
+        for particle in detector.result_accumulator.particles:
+            if particle.probability_ambient is None : 
+                continue
 
-def detectors_to_1d_distribution(detectors: list[electron_detector.ElectronDetector]):
+            energies.append(particle.starting_energy) 
+            ambient_probs.append(particle.probability_ambient) 
+            sec_probs.append(particle.probability_secondary)
+
+        # plt.scatter(energies, sec_probs, label=f"Detector {detector.backtracking_type.name}  - Secondary")
+        plt.scatter(energies, ambient_probs, label=f"Detector {detector.backtracking_type.name} - Ambient")
+
+    plt.legend()
+    plt.show()
+
+
+def detectors_to_1d_distribution_bad(detectors: list[electron_detector.ElectronDetector]):
     energy:list[float] = []
     p_ambient:list[float] = []
     p_seee:list[float] = []
@@ -178,7 +196,50 @@ def detectors_to_1d_distribution(detectors: list[electron_detector.ElectronDetec
     plt.scatter(energy, p_ambient, c="blue")
     plt.scatter(energy, p_seee, c="green")
     plt.scatter(energy, p_photo, c="orange")
-    # plt.yscale('log')  
+    plt.yscale('log')  
+    plt.xscale('log')  
+    plt.show()
+
+
+
+
+def detectors_to_1d_distribution(detectors: list[electron_detector.ElectronDetector]):
+    energy:list[float] = []
+    p_ambient:list[float] = []
+    p_seee:list[float] = []
+    p_photo:list[float] = []
+
+    def calculate_probability(detector: electron_detector.ElectronDetector):
+        result_ambient = 0
+        result_seee = 0
+        result_photo = 0
+
+
+        for particle in detector.result_accumulator.particles:
+            particle.collision_type
+            particle.origin # phi and theta on a sphere
+
+            if particle.probability_ambient is not None:
+                result_ambient += particle.probability_ambient * np.sin(np.pi/2 - particle.origin[0])
+            if particle.probability_secondary is not None:
+                result_seee += particle.probability_secondary * np.sin(np.pi/2 - particle.origin[0])
+            if particle.probability_photo is not None:
+                result_photo += particle.probability_photo * np.sin(np.pi/2 - particle.origin[0])
+
+
+        p_ambient.append(result_ambient)
+        p_seee.append(result_seee )
+        p_photo.append(result_photo )
+
+    for detector in detectors: 
+        energy.append(detector.energy)
+        calculate_probability(detector)
+
+    plt.scatter(energy, p_ambient, c="blue")
+    plt.scatter(energy, p_seee, c="green")
+    plt.scatter(energy, p_photo, c="orange")
+    plt.xscale('log')  
+    plt.yscale('log')  
     plt.show()
 
 
@@ -190,6 +251,8 @@ def interactive_plot_mesh_with_typed_trajectories(mesh: DataSet, trajectories: l
     # plotter.add_mesh(pyvista.core.utilities.points.lines_from_points([[0,0,0], [-10,0,0]]), color="green")
     for trajectory in trajectories:
         # print(trajectory)
+
+
         line = pyvista.core.utilities.points.lines_from_points(trajectory[0]) # type: ignore
         color = "black"
         if trajectory[1] == CollisionTypes.Spacecraft:
@@ -212,9 +275,10 @@ def interactive_plot_electron_detectors(mesh: DataSet, detectors: list[electron_
             # if not (particle.probability_photo is not None and particle.probability_photo > 0):
             #     continue
 
-            if particle.position[0] > -1 or particle.collision_type == CollisionTypes.Boundary:
-                continue
-
+            # if particle.position[0] > -1 or particle.collision_type == CollisionTypes.Boundary:
+            #     continue
+            # if not particle.collision_type == CollisionTypes.Spacecraft:
+            #     continue
 
             line = pyvista.core.utilities.points.lines_from_points(particle.position_history) # type: ignore
             color = "black"
@@ -225,7 +289,36 @@ def interactive_plot_electron_detectors(mesh: DataSet, detectors: list[electron_
             if particle.probability_photo is not None and particle.probability_photo > 0:
                 color = "yellow"
             plotter.add_mesh(line, color=color) # type: ignore
-    plotter.show()  # type: ignore
+    plotter.show()  # type: ignore@allow_mesh
+
+
+@allow_mesh
+def interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh: DataSet, detectors: list[electron_detector.ElectronDetector] ) -> None:
+    plotter = Plotter()
+    plotter.add_mesh(mesh, scalars= "gmsh:physical")  # type: ignore
+
+    # plotter.add_mesh(pyvista.core.utilities.points.lines_from_points([[0,0,0], [-10,0,0]]), color="green")
+    for detector in detectors:
+        # print(trajectory)
+        for particle in detector.result_accumulator.particles:
+            # if not (particle.probability_photo is not None and particle.probability_photo > 0):
+            #     continue
+
+            # if particle.position[0] > -1 or particle.collision_type == CollisionTypes.Boundary:
+            #     continue
+            # if not particle.collision_type == CollisionTypes.Spacecraft:
+            #     continue
+
+            line = pyvista.core.utilities.points.lines_from_points(particle.position_history) # type: ignore
+            color = "black"
+            if detector.backtracking_type == electron_detector.BacktrackingTypes.Euler:
+                color = "red"
+            if detector.backtracking_type == electron_detector.BacktrackingTypes.RK:
+                color = "blue"
+            if detector.backtracking_type == electron_detector.BacktrackingTypes.Boris:
+                color = "orange"
+            plotter.add_mesh(line, color=color) # type: ignore
+    plotter.show()  # type: ignore@allow_mesh
 
 
 @allow_mesh

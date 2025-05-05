@@ -10,6 +10,7 @@ import utils
 import matplotlib.pyplot as plt
 import scipy.constants as consts
 import pandas as pd 
+import logging as log
 import pickle
 
 
@@ -56,6 +57,10 @@ class Electron:
     probability_photo: float|None = None
     probability_secondary: float|None = None
 
+    count_ambient: float | None = None
+    count_photo: float | None = None
+    count_secondary: float| None = None
+
 
 class ResultAccumulator():
     def __init__(self) -> None:
@@ -68,10 +73,12 @@ class ResultAccumulator():
 
     def save(self):
         pass
-        # data = {'X_position': hit_x,
-        #  'Y_position': hit_y}
-        # df = pd.DataFrame.from_dict(data)
-        # df.to_csv(default_settings.Settings.default_output_path / 'spacecraft.csv')
+
+    def plot_energies_against_probability(self):
+        for particle in self.particles:
+            if particle.probability_ambient is not None: 
+                plt.scatter(particle.starting_energy, particle.probability_ambient)
+        plt.show()
 
 
 class TripColorResultAccumulator(ResultAccumulator):
@@ -223,8 +230,8 @@ class ElectronDetector:
         self.particles: list[Electron] = []
         self.position: Vector3D = np.array([3.4466, 0,-0.135])
         self.orientation: Vector3D = np.array([-1, 0, 0])
-        self.updirection: Vector3D = np.array([0, 0 ,-1])
-        self.radius: float = 0.15
+        self.updirection: Vector3D = np.array([0, 1 ,0])
+        self.radius: float = 0.03
         self.acceptance_angle_phi: float = np.pi * 2
         self.acceptance_angle_theta: float = np.pi /1
         self.backtracking_type: BacktrackingTypes = BacktrackingTypes.Euler
@@ -237,7 +244,7 @@ class ElectronDetector:
 
         
         # self.dt: float = 12 / (18755372 * (1))
-        self.dt: float = 0.5 / np.sqrt(2 * energy * scipy.constants.eV / scipy.constants.electron_mass)
+        self.dt: float = self.calculate_dt()
 
 
         self.number_of_samples_theta: int = 40
@@ -267,10 +274,17 @@ class ElectronDetector:
 
         self.e_field_mesh = utils.generate_efield_vector_property(self.simulation) # Contains "vector_electric_field"
         density_val = utils.glob_properties(self.simulation, "final_elec1_charge_density*")
+        utils.glob_properties(self.simulation, "*final_photoElec_charge_density*")
+        utils.glob_properties(self.simulation, "*final_secondElec_BS*")
+
+        
         assert len(density_val) == 1 
         self.density_name = density_val[0][1]
         self.mesh = density_val[0][0]
         self.charge_density_gradient = density_val[0][0].mesh.compute_derivative(scalars=self.density_name)
+
+
+        # print(len(self.mesh.mesh['final_photoElec_charge_density_-_step0']), len(self.mesh.mesh['final_secondElec_BS_from_ambiant_electrons_charge_density_-_step0']), len(self.e_field_mesh["vector_electric_field"]))
 
 
 
@@ -280,6 +294,9 @@ class ElectronDetector:
             result.append(particle.position_history)
         return result
 
+    def calculate_dt(self):
+        self.dt =  0.5 / np.sqrt(2 * self.energy * scipy.constants.eV / scipy.constants.electron_mass)
+        return self.dt
 
 
     def get_typed_trajectories(self):
@@ -354,12 +371,13 @@ class ElectronDetector:
 
 
 
-        for n, y in enumerate(directions):
-            print("Backtracking: row", n+1, " out of ", self.number_of_samples_theta)
-            for m, x in enumerate(y): 
+        for n, x in enumerate(directions):
+            log.info(f"Backtracking: row {n+1},  out of  {self.number_of_samples_phi} for energy {self.energy}")
+            for m, y in enumerate(x): 
+                # print("Backtracking: column", m+1, " out of ", self.number_of_samples_theta)
 
 
-                electron = self.generate_electron_vector(x, (thetas[n], phis[m]))
+                electron = self.generate_electron_vector(y, (thetas[m], phis[n]))
 
                 self.backtrack_one_electron(electron)
 
@@ -429,7 +447,7 @@ class ElectronDetector:
 
         # print(result)
         reverse_dir = np.array(electron.position) - np.array(electron.previous_position)
-        reverse_offset = reverse_dir/np.linalg.norm(reverse_dir) * 0.000001
+        reverse_offset = reverse_dir/np.linalg.norm(reverse_dir) * 0.0001
 
         result =  result + reverse_offset
 
@@ -442,17 +460,19 @@ class ElectronDetector:
     def calculate_probability(self, electron: Electron) -> None:
         if electron.collision_type == CollisionTypes.Boundary:
             electron.probability_ambient = self.calculate_probability_boundary(electron)
+            # electron.count_ambient = self.calculate_count_boundary(electron)
             # print(electron.probability)
         if electron.collision_type == CollisionTypes.Spacecraft:
             self.calculate_probability_spacecraft(electron)
+            self.calculate_count_spacecraft(electron)
             # electron.probability_photo = self.calculate_probability_spacecraft_photo(electron)
 
     def calculate_probability_spacecraft(self, electron: Electron):
         def get_temperature_SEEE():
-            return 2 * 11600# TODO 
+            return 2 * scipy.constants.physical_constants["electron volt-kelvin relationship"][0] # TODO 
         
         def get_temperature_photo():
-            return 3 * 11600 #TODO
+            return 3 * scipy.constants.physical_constants["electron volt-kelvin relationship"][0] #TODO
 
         def norm_distribution_speed(vec: Vector3D, temperature: float) -> float:
             # print("SEEE" , vec)
@@ -477,6 +497,44 @@ class ElectronDetector:
         
 
         return True        
+    
+
+    
+    def calculate_count_spacecraft(self, electron: Electron):
+        id:int = self.mesh.mesh.find_closest_point(electron.position)
+        if id == -1: 
+            raise Exception
+
+        photodensity = self.mesh.mesh['final_photoElec_charge_density_-_step0'][id]
+        secdensity = self.mesh.mesh['final_secondElec_BS_from_ambiant_electrons_charge_density_-_step0'][id]
+
+
+        if electron.probability_photo is not None: 
+            electron.count_photo = electron.probability_photo * photodensity / scipy.constants.elementary_charge
+
+        if electron.probability_secondary is not None:
+            electron.count_secondary = electron.probability_secondary * secdensity / scipy.constants.elementary_charge
+
+        
+
+
+        return True        
+    
+    def calculate_count_boundary(self, electron: Electron):
+        id:int = self.e_field_mesh.find_closest_cell(electron.position)
+        if id == -1: 
+            raise Exception
+
+        particle_count = 10**7
+
+        if electron.probability_ambient is not None:
+            result:float = electron.probability_ambient * particle_count
+
+        electron.count_ambient = result
+
+        return result        
+
+
 
 
     def calculate_probability_boundary(self, electron:Electron):
@@ -578,6 +636,26 @@ class ElectronDetector:
 
             electron.velocity = new_velocity
             electron.position = new_position
+        # elif self.backtracking_type == BacktrackingTypes.Boris:
+        #     # Boris push without magnetic field
+        #     # qmdt2 = (-electron.CHARGE / electron.MASS) * (dt / 2.0)
+
+        #     # Half acceleration by E
+        #     # v_minus = electron.velocity + qmdt2 * E
+
+        #     # B would be here 
+
+        #     # Half acceleration again
+        #     v_plus = electron.velocity + (-electron.CHARGE / electron.MASS) * E
+
+        #     new_velocity = v_plus
+        #     new_position = electron.position + (-dt) * v_plus
+
+        #     electron.previous_velocity = electron.velocity
+        #     electron.previous_position = electron.position
+
+        #     electron.velocity = new_velocity
+        #     electron.position = new_position
 
         return
 
@@ -601,9 +679,13 @@ class ElectronDetector:
          
         # print(collided_faces_SC)
 
-        electron.position_history.append(ray)
+        # electron.position_history.append(ray)
+
+        direction_check = [sun_direction[i] * (electron.previous_position[i] - electron.position[i])  for i in range(3)]
+
+        direction_check_result = direction_check[0] + direction_check[1] + direction_check[2]
         
-        return len(collided_faces_SC) == 0  
+        return (len(collided_faces_SC) == 0)  and direction_check_result < 0
     
 
     def generate_electron_vector(self, direction: Vector3D, angle: Vector2D):
@@ -621,7 +703,7 @@ class ElectronDetector:
 
 
         result = Electron(origin=origin, position=position, 
-                          previous_position=position, velocity=velocity, previous_velocity=velocity, starting_energy=energy)
+                          previous_position=position, velocity=velocity, previous_velocity=velocity, starting_energy=self.energy)
 
         self.particles.append(result)
         return result
@@ -644,7 +726,7 @@ class ElectronDetector:
 
 
         result = Electron(origin=origin, position=position, 
-                          previous_position=position, velocity=velocity, previous_velocity=velocity, starting_energy=energy)
+                          previous_position=position, velocity=velocity, previous_velocity=velocity, starting_energy=self.energy)
 
         self.particles.append(result)
         return result
@@ -667,7 +749,7 @@ class ElectronDetector:
 
 
         result = Electron(origin=origin, position=position, 
-                          previous_position=position, velocity=velocity, previous_velocity=velocity, starting_energy=energy)
+                          previous_position=position, velocity=velocity, previous_velocity=velocity, starting_energy=self.energy)
 
         self.particles.append(result)
         return result
