@@ -18,4 +18,5 @@ class DataSetFilters:
         generate_triangles: bool = False,
         contour: bool = False,
         progress_bar: bool = False,
-    ) -> pyvista.core.composite.MultiBlock: ...
+    ) -> pyvista.core.composite.MultiBlock:
+        ...
