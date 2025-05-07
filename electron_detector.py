@@ -61,6 +61,9 @@ class Electron:
     count_photo: float | None = None
     count_secondary: float| None = None
 
+    def append_position_to_history(self):
+        self.position_history.append(self.position)
+
 
 class ResultAccumulator():
     def __init__(self) -> None:
@@ -585,79 +588,19 @@ class ElectronDetector:
 
         if self.backtracking_type == BacktrackingTypes.Euler:
             # Euler scheme
-
-            new_velocity  = electron.velocity + ((-dt) * (-electron.CHARGE/electron.MASS) * E)
-            new_position  = electron.position + ((-dt) * electron.velocity)
-
-            electron.previous_velocity = electron.velocity
-            electron.previous_position = electron.position
-
-            electron.velocity = new_velocity
-            electron.position = new_position
+            euler_scheme(electron, -dt, E)
 
         elif self.backtracking_type == BacktrackingTypes.RK:
             # Runge-Kutta 2nd order (midpoint method)
-            k1_v = (-electron.CHARGE / electron.MASS) * E
-            k1_x = electron.velocity
+            rk_scheme(electron, -dt, E, self.get_electric_field)
 
-            mid_position = electron.position + (-0.5 * dt) * k1_x
-            mid_velocity = electron.velocity + (-0.5 * dt) * k1_v
-
-            E_mid = self.get_electric_field(mid_position)
-            k2_v = (-electron.CHARGE / electron.MASS) * E_mid
-            k2_x = mid_velocity
-
-            new_velocity = electron.velocity + (-dt) * k2_v
-            new_position = electron.position + (-dt) * k2_x
-
-            electron.previous_velocity = electron.velocity
-            electron.previous_position = electron.position
-
-            electron.velocity = new_velocity
-            electron.position = new_position
 
         elif self.backtracking_type == BacktrackingTypes.Boris:
             # Boris push without magnetic field
-            qmdt2 = (-electron.CHARGE / electron.MASS) * (dt / 2.0)
-
-            # Half acceleration by E
-            v_minus = electron.velocity + qmdt2 * E
-
-            # B would be here 
-
-            # Half acceleration again
-            v_plus = v_minus + qmdt2 * E
-
-            new_velocity = v_plus
-            new_position = electron.position + (-dt) * v_plus
-
-            electron.previous_velocity = electron.velocity
-            electron.previous_position = electron.position
-
-            electron.velocity = new_velocity
-            electron.position = new_position
-        # elif self.backtracking_type == BacktrackingTypes.Boris:
-        #     # Boris push without magnetic field
-        #     # qmdt2 = (-electron.CHARGE / electron.MASS) * (dt / 2.0)
-
-        #     # Half acceleration by E
-        #     # v_minus = electron.velocity + qmdt2 * E
-
-        #     # B would be here 
-
-        #     # Half acceleration again
-        #     v_plus = electron.velocity + (-electron.CHARGE / electron.MASS) * E
-
-        #     new_velocity = v_plus
-        #     new_position = electron.position + (-dt) * v_plus
-
-        #     electron.previous_velocity = electron.velocity
-        #     electron.previous_position = electron.position
-
-        #     electron.velocity = new_velocity
-        #     electron.position = new_position
+            boris_scheme(electron, -dt, E)
 
         return
+            
 
     def detect_collision_SC(self, electron: Electron):
         spacecraft_mesh = self.simulation.results.extracted_data_fields.spacecraft_face.mesh
@@ -691,7 +634,7 @@ class ElectronDetector:
     def generate_electron_vector(self, direction: Vector3D, angle: Vector2D):
         origin = (angle[1], angle[0])
 
-        position = self.position + direction*self.radius 
+        position = self.position + self.radius*direction 
 
 
         # origin = self._map_point_into_2d_plane(self._get_starting_position_direction(x,y))
@@ -807,3 +750,56 @@ class ElectronDetector:
     def accumulate_collision(self, electron: Electron):
 
         self.result_accumulator.add_particle(electron)
+
+
+
+def euler_scheme(electron: Electron, dt:float, E:Vector3D):
+        new_velocity  = electron.velocity + ((dt) * (-electron.CHARGE/electron.MASS) * E)
+        new_position  = electron.position + ((dt) * electron.velocity)
+
+        electron.previous_velocity = electron.velocity
+        electron.previous_position = electron.position
+
+        electron.velocity = new_velocity
+        electron.position = new_position
+
+def rk_scheme(electron: Electron, dt:float, E:Vector3D, func_for_efield):
+        k1_v = (-electron.CHARGE / electron.MASS) * E
+        k1_x = electron.velocity
+
+        mid_position = electron.position + (0.5 * dt) * k1_x
+        mid_velocity = electron.velocity + (0.5 * dt) * k1_v
+
+        E_mid = func_for_efield(mid_position)
+        k2_v = (-electron.CHARGE / electron.MASS) * E_mid
+        k2_x = mid_velocity
+
+        new_velocity = electron.velocity + (dt) * k2_v
+        new_position = electron.position + (dt) * k2_x
+
+        electron.previous_velocity = electron.velocity
+        electron.previous_position = electron.position
+
+        electron.velocity = new_velocity
+        electron.position = new_position
+
+def boris_scheme(electron: Electron, dt:float, E:Vector3D):
+        # Boris push without magnetic field
+        qmdt2 = (-electron.CHARGE / electron.MASS) * (dt / 2.0)
+
+        # Half acceleration by E
+        v_minus = electron.velocity + qmdt2 * E
+
+        # B would be here 
+
+        # Half acceleration again
+        v_plus = v_minus + qmdt2 * E
+
+        new_velocity = v_plus
+        new_position = electron.position + (dt) * v_plus
+
+        electron.previous_velocity = electron.velocity
+        electron.previous_position = electron.position
+
+        electron.velocity = new_velocity
+        electron.position = new_position

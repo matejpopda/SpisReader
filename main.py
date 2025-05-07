@@ -8,10 +8,11 @@ import default_settings
 import electron_detector
 import simulation
 import numpy as np
-
+import matplotlib.pyplot as plt 
 import multiprocessing
 import spisutils
 import pickle
+import scipy.constants as const
 
 import pyvista
 import pyvista.plotting.plotter
@@ -43,7 +44,7 @@ def simulate_1d_detector(sim: simulation.Simulation, force_sim: bool = False, bt
     detector_1d = electron_detector.ElectronDetector(sim, energy=1)
     detector_1d.number_of_samples_phi = 1
     detector_1d.number_of_samples_theta = 1
-    detector_1d.number_of_steps = 300
+    detector_1d.number_of_steps = 500
     detector_1d.backtracking_type = bt_type
     detector_1d.orientation = np.array([1, 0, 0])
     detector_1d.acceptance_angle_phi = 0.000001
@@ -60,10 +61,87 @@ def simulate_1d_detector(sim: simulation.Simulation, force_sim: bool = False, bt
     return detector_1d
 
 
+def uniform_field_test(sim):
+    dummy_detector = electron_detector.ElectronDetector(sim, 10)
+    dummy_detector.position = np.array((-1,0,0))
+    dummy_detector.orientation = np.array((1,0,0))
+    dummy_detector.radius = 1
+
+    electrons_euler: list[electron_detector.Electron] = []
+    electrons_rk   : list[electron_detector.Electron] = []
+    electrons_boris: list[electron_detector.Electron] = []
+
+    def uniform_field(position):
+        return np.array((0,1,0))
+    
+    
+    deltatime = - 0000.1
+
+
+    for energy in range(1,10,2):
+        dummy_detector.energy = energy
+
+        electron_euler = dummy_detector.generate_electron_vector([1,0,0], (0,0))
+        electron_boris = dummy_detector.generate_electron_vector([1,0,0], (0,0))
+        electron_rk = dummy_detector.generate_electron_vector([1,0,0], (0,0))
+
+        electrons_euler.append(electron_euler)
+        electrons_rk.append(electron_rk)
+        electrons_boris.append(electron_boris)
+
+        # print(electron_euler.velocity)   
+
+        for i in range(10):
+            electron_euler.append_position_to_history()
+            electron_boris.append_position_to_history()
+            electron_rk.append_position_to_history()
+            electron_detector.euler_scheme(electron_euler, dt=deltatime, E = uniform_field(electron_euler.position))
+            electron_detector.boris_scheme(electron_boris, dt=deltatime, E = uniform_field(electron_boris.position))
+            electron_detector.rk_scheme(electron_rk, dt=deltatime, E = uniform_field(electron_rk.position), func_for_efield=uniform_field)
+
+
+    for e in electrons_euler:
+        positions_e_x = [x[0] for x in  e.position_history]
+        positions_e_y = [x[1] for x in  e.position_history]
+        plt.plot(positions_e_x, positions_e_y, c="red", label="Euler scheme")
+        
+    for e in electrons_rk:
+        positions_e_x = [x[0] for x in  e.position_history]
+        positions_e_y = [x[1] for x in  e.position_history]
+        plt.plot(positions_e_x, positions_e_y, c="green", label="RK2 scheme")
+        
+    for e in electrons_boris:
+        positions_e_x = [x[0] for x in  e.position_history]
+        positions_e_y = [x[1] for x in  e.position_history]
+        plt.plot(positions_e_x, positions_e_y, c="blue", label="Boris scheme")
+
+    def plot_analytical_position(energy:float):
+        x = []
+        y = []
+        smoothness = 10
+        speed = np.sqrt(2 * energy * const.eV/ const.electron_mass)
+        for i in range(10 * smoothness):
+            x.append(speed * i * deltatime/smoothness)
+            y.append(0.5 * (-const.elementary_charge/ const.electron_mass) * (i * deltatime/smoothness) ** 2 )
+        plt.plot(x, y, c="black", label="Analytical solution")
+
+
+    for i in range(1, 10,2):
+        plot_analytical_position(i)
+
+    plt.show()
+
+
+
+
 
 
 @helpers.log_function_entry_and_exit
 def main():
+
+
+
+
     path = pathlib.Path("C:/temp/DP/SOLO06.spis5/SOLO06")
     # path = pathlib.Path("C:/temp/DP-sim/SOLOA14/SOLOA14.spis5/SOLOA14")
 
@@ -73,6 +151,9 @@ def main():
 
     result = reader.load_simulation(path, force_processing=False)
 
+    # uniform_field_test(result)
+    # exit()
+
     for detector in result.results.numerical_kernel_output.particle_detectors:
         for plist in detector.particle_list:
             reader.load_unloaded_particle_list(plist)
@@ -81,17 +162,18 @@ def main():
 
     utils.generate_efield_vector_property(result)
 
-    particle_list = spisutils.get_particle_list(result)
-    spisutils.plot_pl_EDF(particle_list)
+    # particle_list = spisutils.get_particle_list(result)
+    # spisutils.plot_pl_EDF(particle_list)
 
     detector_1d_euler = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.Euler)
     detector_1d_boris = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.Boris)
     detector_1d_rk = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.RK)
-    # plotters.plot_detectors_with_0_acceptance_angle([detector_1d_boris, detector_1d_euler, detector_1d_rk]) 
+    plotters.plot_detectors_with_0_acceptance_angle([detector_1d_boris, detector_1d_euler, detector_1d_rk]) 
     # plotters.plot_detectors_with_0_acceptance_angle([detector_1d_boris]) 
+    plotters.plot_detectors_with_0_acceptance_angle([detector_1d_euler]) 
 
-    plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_rk])
-    # plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_boris, detector_1d_euler, detector_1d_rk])
+    plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_euler])
+    plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_boris, detector_1d_euler, detector_1d_rk])
 
     detectors: list[electron_detector.ElectronDetector] = []
     processes: list[multiprocessing.Process] = []
