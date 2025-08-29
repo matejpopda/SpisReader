@@ -2,5 +2,8 @@
     "python.analysis.typeCheckingMode": "strict",
     "python.analysis.ignore": [
         "**/pyvista",
+    ],
+    "cSpell.words": [
+        "cmap"
     ]
 }

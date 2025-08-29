@@ -3,9 +3,8 @@ import xml.etree.ElementTree as ET
 import logging
 import typing
 import meshio
-import meshio._mesh
+import meshio._mesh  # type: ignore
 import pyvista
-import pyvista.core.dataset
 import pickle
 import pandas
 import numpy as np
@@ -102,7 +101,7 @@ def get_groups(path: Path) -> list[Group]:
         else:
             log.debug(
                 "While parsing groups this element ID had no type:'"
-                + get_text_of_a_child(children, "id")
+                + children.__str__()
                 + "'. Ignoring this element."
             )
     return result
@@ -216,7 +215,9 @@ def get_numerical_kernel_output(file_path: Path, instruments: list[UserInstrumen
         emitted_currents=load_time_series(file_path / "emittedCurrents.txt"),
         number_of_superparticles=get_number_of_superparticles(file_path),
         particle_detectors=resulting_particle_detectors,
-        time_steps=load_time_series(file_path / "Simulation_Control_-_time_steps_(s_._s)__TimeSteps.txt"),
+        time_steps=load_time_series(
+            list(file_path.glob("Simulation_Control_-_time_steps_(s_?_s)__TimeSteps.txt"))[0]
+        ),
         spis_log=(file_path / "SpisNum.log").read_text(encoding="utf_8", errors="backslashreplace"),
         total_current=load_time_series(file_path / "Total_current_on_spacecraft_surface._SCTotalCurrent.txt"),
         collected_currents=load_time_series(file_path / "collectedCurrents.txt"),
@@ -224,6 +225,34 @@ def get_numerical_kernel_output(file_path: Path, instruments: list[UserInstrumen
             file_path / "Average_surface_potential_of_node_0_(V_,_s)__ElecNode0_Potential.txt"
         ),
     )
+
+
+def load_particle_trajectories(path: Path) -> list[ParticleTrajectory]:
+    result: list[ParticleTrajectory] = []
+
+    for i in get_files_matching_start_and_end(path, "electron_from", "trajectory.nc_mesh.msh"):
+        mesh = load_mesh(i)
+
+        file_string = i.name.split("_")
+
+        time = float(file_string[-2].removesuffix("strajectory.nc"))
+
+        pid = int(file_string[-5])
+
+        data = mesh.mesh.points.tolist()
+
+        name = i.name
+
+        result.append(
+            ParticleTrajectory(
+                name=name,
+                particle_id=pid,
+                time=time,
+                data=data,
+            )
+        )
+
+    return result
 
 
 def get_particle_detector(path: Path, instrument: UserInstrument) -> ParticleDetector:
@@ -272,6 +301,9 @@ def ordered_list_of_meshes(path: Path, start_of_file_name: str, end_of_file_name
         result.append(mesh)
 
     result.sort(key=lambda mesh: (mesh.time is None, mesh.time))
+
+    if default_settings.Settings.reduced_numerical_kernel is True:
+        result = [result.pop()]
     return result
 
 
@@ -303,6 +335,10 @@ def ordered_list_of_distribution2D(
         result.append(distribution)
 
     result.sort(key=lambda distribution: (distribution.time is None, distribution.time))
+
+    if default_settings.Settings.reduced_numerical_kernel is True:
+        result = [result.pop()]
+
     return result
 
 
@@ -314,6 +350,9 @@ def ordered_list_of_Moments(path: Path, start_of_file_name: str, end_of_file_nam
         result.append(moments)
 
     result.sort(key=lambda moments: (moments.time is None, moments.time))
+
+    if default_settings.Settings.reduced_numerical_kernel is True:
+        result = [result.pop()]
     return result
 
 
@@ -335,9 +374,9 @@ def load_moments(path: Path) -> Moments:
     result["Moment of the flux distribution function at the detector surface : Flux"] = float(
         data[10].replace("m-1.s-2 ", "")
     )
-    result["Moment of the flux distribution function at the detector surface: Velocity in GMSH frame"] = (
-        string_to_vec(data[12])
-    )
+    result[
+        "Moment of the flux distribution function at the detector surface: Velocity in GMSH frame"
+    ] = string_to_vec(data[12])
     result["Moment of the flux distribution function at the detector surface: Mean energy"] = float(data[14])
 
     result["Moment of the initial distribution function: Density"] = float(data[18])
@@ -467,7 +506,7 @@ def ordered_list_of_particleLists(
 ) -> list[ParticleList]:
     result: list[ParticleList] = []
     for i in get_files_matching_start_and_end(path, start_of_file_name, end_of_file_name):
-        if default_settings.Settings.lazy_loading == True:
+        if default_settings.Settings.lazy_loading == True and False:
             particleLists = lazy_load_particle_list(i)
         else:
             particleLists = load_particle_list(i)
@@ -608,6 +647,7 @@ def get_extracted_datafields(path: Path) -> ExtractedDataFields:
         volume_vertex=volume_vertex,
         spacecraft_mesh=spacecraft_mesh,
         display_vol_mesh=display_vol_mesh,
+        particle_trajectories=load_particle_trajectories(path),
     )
 
 
@@ -645,12 +685,12 @@ def add_data_to_mesh(da: xarray.DataArray, mesh: Mesh, path_to_property: Path, m
             mesh.mesh.cell_data[path_to_property.stem] = cur_data
         # this last option shouldn't run
         else:
-            log.warn(f"{str(path_to_property.stem)} was saved as field data. This data can't be plotted")
+            log.warning(f"{str(path_to_property.stem)} was saved as field data. This data can't be plotted")
             mesh.mesh.field_data[path_to_property.stem] = cur_data
         mesh.properties.append(path_to_property.stem)
         log.debug("Loaded " + path_to_property.stem)
     except Exception as e:
-        log.warn("Failed on " + path_to_property.stem + " this data won't be available")
+        log.warning("Failed on " + path_to_property.stem + " this data won't be available")
         log.debug("Was using the mask " + str(mask.attrs["meshURI"]))
         log.debug(type(e).__name__, e)
 
@@ -686,7 +726,9 @@ def reshape_data_according_to_mask(data: xarray.Dataset, mask: xarray.Dataset) -
 
     assert np_data_array is not None
 
-    inverted_indices = [0] * len(mask_as_series)
+    inverted_indices = [0] * (
+        max(mask_as_series) + 1
+    )  # TODO: this will fail if the number of elements Im assigning to is not equal to the maximum element index. To fix I need to know what Im assigning to, and I need to know the length of it, previous implementation of using len(mask as series) also wasnt working, temp fix could be grabbing maximum of those 2
 
     # Invert the indices
     for i, idx in enumerate(mask_as_series):
@@ -703,14 +745,17 @@ def reshape_data_according_to_mask(data: xarray.Dataset, mask: xarray.Dataset) -
 def load_simulation(
     path_to_spis: Path,
     *,
-    pickle_path: Path| None = None, 
-    processed_name: str|None = None,
+    pickle_path: Path | None = None,
+    processed_name: str | None = None,
     force_processing: bool = False,
 ) -> Simulation:
     if pickle_path is None:
-        pickle_path = path_to_spis
+        if default_settings.Settings.default_pickle_path is None:
+            pickle_path = path_to_spis
+        else:
+            pickle_path = default_settings.Settings.default_pickle_path
 
-    if processed_name is None: 
+    if processed_name is None:
         processed_name = f"processed_simulation_{path_to_spis.stem}.pkl"
 
     if force_processing or not (pickle_path / processed_name).exists():
@@ -721,9 +766,9 @@ def load_simulation(
     return result
 
 
-
-def load_unloaded_distribution2d(distribution: Distribution2D): 
+def load_unloaded_distribution2d(distribution: Distribution2D):
     distribution.data = load_distribution2d(distribution.path_to_data).data
+
 
 def load_unloaded_particle_list(plist: ParticleList):
     plist.data = load_particle_list(plist.path).data
