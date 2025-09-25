@@ -26,11 +26,21 @@ def run_backtrack(detector: electron_detector.ElectronDetector, energy: float, b
     detector.backtracking_type = bt_type
     detector.backtrack()
     detector.simulation = None
+    assert default_settings.Settings.default_pickle_path is not None
+    detector.save_self(default_settings.Settings.default_pickle_path / f"Detector_energy={energy}_bttype={bt_type.name}.pkl")
+    print("Ended energy ", energy, " backtracking type ", bt_type.name)
+
+def run_backtrack_better(detector: electron_detector.ElectronDetector, energy: float, bt_type: electron_detector.BacktrackingTypes):
+    print("Started energy " , energy, " backtracking type ", bt_type.name) 
+    detector.backtracking_type = bt_type
+    detector.backtrack()
+    detector.simulation = None
+    assert default_settings.Settings.default_pickle_path is not None
     detector.save_self(default_settings.Settings.default_pickle_path / f"Detector_energy={energy}_bttype={bt_type.name}.pkl")
     print("Ended energy ", energy, " backtracking type ", bt_type.name)
 
 
-def simulate_1d_detector(sim: simulation.Simulation, force_sim: bool = False, bt_type: electron_detector.BacktrackingTypes = electron_detector.BacktrackingTypes.Euler):
+def simulate_1d_detector(sim: simulation.Simulation, force_sim: bool = False, bt_type: electron_detector.BacktrackingTypes = electron_detector.BacktrackingTypes.Euler, dt_modifier: float = 1):
 
     save_path = default_settings.Settings.default_pickle_path / f"1D_detector_{bt_type.name}.pkl"
 
@@ -43,17 +53,18 @@ def simulate_1d_detector(sim: simulation.Simulation, force_sim: bool = False, bt
     detector_1d = electron_detector.ElectronDetector(sim, energy=1)
     detector_1d.number_of_samples_phi = 1
     detector_1d.number_of_samples_theta = 1
-    detector_1d.number_of_steps = 300
+    detector_1d.number_of_steps = 1000
     detector_1d.backtracking_type = bt_type
     detector_1d.orientation = np.array([1, 0, 0])
     detector_1d.acceptance_angle_phi = 0.000001
     detector_1d.acceptance_angle_theta = 0.0000001
 
     log.info(f"Simulating 1D_detector_{bt_type.name}")
-
+ 
     for i in range(2,120):
         detector_1d.energy = i
         detector_1d.calculate_dt()
+        # detector_1d.dt = detector_1d.dt
         detector_1d.backtrack()
     detector_1d.simulation = None
     detector_1d.save_self(save_path)
@@ -81,20 +92,46 @@ def main():
 
     utils.generate_efield_vector_property(result)
 
-    particle_list = spisutils.get_particle_list(result)
-    spisutils.plot_pl_EDF(particle_list)
+    x = electron_detector.ElectronDetector(result, energy = 1)
+     
+    pass 
+
+    clim = (-50, 48)
+    for comp, name in [[None, "mag"], [0, "xz"], [1, "xy"], [2, "yz"]]:
+        plotters.xz_slice(x.electric_field_from_potential, property="gradient", component=comp, filename=name + "_xz_calculated", percentile=clim)
+        plotters.xz_slice(x.e_field_mesh, property="vector_electric_field", component=comp, filename=name + "_xz_spis", percentile=clim)
+        
+        plotters.xy_slice(x.electric_field_from_potential, property="gradient", component=comp, filename=name + "_xy_calculated", percentile=clim)
+        plotters.xy_slice(x.e_field_mesh, property="vector_electric_field", component=comp, filename=name + "_xy_spis", percentile=clim)
+
+        plotters.yz_slice(x.electric_field_from_potential, property="gradient", component=comp, filename=name + "_yz_calculated", percentile=clim)
+        plotters.yz_slice(x.e_field_mesh, property="vector_electric_field", component=comp, filename=name + "_yz_spis", percentile=clim)
+
+
+
+    exit()
+
+    # particle_list = spisutils.get_particle_list(result)
+    # spisutils.plot_pl_EDF(particle_list)
 
     detector_1d_euler = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.Euler)
     detector_1d_boris = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.Boris)
     detector_1d_rk = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.RK)
-    # plotters.plot_detectors_with_0_acceptance_angle([detector_1d_boris, detector_1d_euler, detector_1d_rk]) 
+
+    detector_1d_euler.result_accumulator.plot_energies_against_probability()
+    detector_1d_boris.result_accumulator.plot_energies_against_probability()
+    detector_1d_rk.result_accumulator.plot_energies_against_probability()
+    plotters.plot_detectors_with_0_acceptance_angle([detector_1d_boris, detector_1d_euler, detector_1d_rk]) 
     # plotters.plot_detectors_with_0_acceptance_angle([detector_1d_boris]) 
 
-    plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_rk])
-    # plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_boris, detector_1d_euler, detector_1d_rk])
+    # plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_rk])
+    plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_boris, detector_1d_euler, detector_1d_rk])
 
     detectors: list[electron_detector.ElectronDetector] = []
     processes: list[multiprocessing.Process] = []
+
+
+    # exit() 
 
     # energies = [1,2,3,4,5,6,7,8,12,16,24,32,64,120]
     # energies = [1,2]
@@ -119,21 +156,21 @@ def main():
     # backtrack_types = [electron_detector.BacktrackingTypes.Euler]
     backtrack_types = [electron_detector.BacktrackingTypes.RK]
 
-    # if True:
-    #     for bt_type in backtrack_types:
-    #         for energy in energies: 
-    #             detector = electron_detector.ElectronDetector(result, energy=energy)
-    #             detector.number_of_steps = 30
-    #             detector.number_of_samples_phi = 20
-    #             detector.number_of_samples_theta = 20
-    #             detectors.append(detector)
+    if True:
+        for bt_type in backtrack_types:
+            for energy in energies: 
+                detector = electron_detector.ElectronDetector(result, energy=energy)
+                detector.number_of_steps = 30
+                detector.number_of_samples_phi = 20
+                detector.number_of_samples_theta = 20
+                detectors.append(detector)
 
-    #             process = multiprocessing.Process(target=run_backtrack, args=(detector,energy, bt_type,))
-    #             process.start()
-    #             processes.append(process)
+                process = multiprocessing.Process(target=run_backtrack, args=(detector,energy, bt_type,))
+                process.start()
+                processes.append(process)
 
-    #     for process in processes:
-    #         process.join()
+        for process in processes:
+            process.join()
 
 
     detectors.clear()

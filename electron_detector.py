@@ -284,6 +284,15 @@ class ElectronDetector:
         self.charge_density_gradient = density_val[0][0].mesh.compute_derivative(scalars=self.density_name)
 
 
+        potential_val = utils.glob_properties(self.simulation, "final_plasma_potential*")
+        assert len(potential_val) == 1 
+        self.potential_name = potential_val[0][1]
+        self.electric_field_from_potential = potential_val[0][0].mesh.compute_derivative(scalars=self.potential_name)
+
+        
+
+
+
         # print(len(self.mesh.mesh['final_photoElec_charge_density_-_step0']), len(self.mesh.mesh['final_secondElec_BS_from_ambiant_electrons_charge_density_-_step0']), len(self.e_field_mesh["vector_electric_field"]))
 
 
@@ -295,7 +304,7 @@ class ElectronDetector:
         return result
 
     def calculate_dt(self):
-        self.dt =  0.5 / np.sqrt(2 * self.energy * scipy.constants.eV / scipy.constants.electron_mass)
+        self.dt =  0.33 / np.sqrt(2 * self.energy * scipy.constants.eV / scipy.constants.electron_mass)
         return self.dt
 
 
@@ -383,6 +392,7 @@ class ElectronDetector:
 
                 if electron.collision_type != CollisionTypes.No_collision:
                     self.accumulate_collision(electron)
+
 
         return 
 
@@ -571,6 +581,8 @@ class ElectronDetector:
             raise Exception
         result = self.charge_density_gradient["gradient"][id]
         return result
+    
+
 
 
     def check_boundary_collision(self, electron :Electron) -> bool:

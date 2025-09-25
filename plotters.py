@@ -1,3 +1,4 @@
+import collections.abc
 from pathlib import Path
 import pyvista.core.pyvista_ndarray
 import pyvista.plotting
@@ -7,6 +8,7 @@ import pyvista.utilities
 import pyvista.core.utilities.points
 import pyvista.utilities
 from simulation import *
+import collections
 import pyvista.core.dataset
 from helpers import allow_mesh, check_and_create_folder
 import logging
@@ -152,7 +154,7 @@ def plot_detectors_with_0_acceptance_angle(detectors: list[electron_detector.Ele
                 continue
 
             energies.append(particle.starting_energy) 
-            ambient_probs.append(particle.probability_ambient) 
+            ambient_probs.append(particle.probability_ambient * 6.24 * 10**18) 
             sec_probs.append(particle.probability_secondary)
 
         # plt.scatter(energies, sec_probs, label=f"Detector {detector.backtracking_type.name}  - Secondary")
@@ -356,8 +358,9 @@ def slice_and_save(
     path: Path | None = None,
     filename: str | None = None,
     screenshot_size: float | None = None,
-    percentile: float | None = 0.05,
+    percentile: float | None | typing.Sequence[float] = 0.05, # TODO RENAME to better reflect option of adding a sequence
     view_up: vector|None = None,
+    component: int|None = None,
 ) -> None:
     if path is None:
         path = Settings.default_output_path
@@ -371,13 +374,16 @@ def slice_and_save(
     path = path / filename
 
     if percentile is not None:
-        clim = _calculate_percentile(mesh, property=property, percentile=percentile)
+        if isinstance(percentile, collections.abc.Sequence):
+            clim = (percentile[0], percentile[1])
+        else :
+            clim = _calculate_percentile(mesh, property=property, percentile=percentile)
     else:
         clim = None
 
     plotter = pyvista.plotting.Plotter(off_screen=True)  # type: ignore
     mesh = mesh.slice(normal=normal, origin=slice_origin)  # type:ignore
-    plotter.add_mesh(mesh, scalars=property, clim=clim)  # type: ignore
+    plotter.add_mesh(mesh, scalars=property, clim=clim, component=component)  # type: ignore
 
     plotter.enable_parallel_projection()  # type: ignore
     plotter.camera_position = [normal, slice_origin, (0,1,0)] 
@@ -398,6 +404,7 @@ def xz_slice(
     filename: str | None = None,
     screenshot_size: float | None = None,
     percentile: float | None = None,
+    component: int|None = None,
 ) -> None:
     if path is None:
         path = Settings.default_output_path
@@ -416,7 +423,8 @@ def xz_slice(
         filename=filename,
         screenshot_size=screenshot_size,
         percentile=percentile,
-        view_up=PlaneNormals.XY
+        view_up=PlaneNormals.XY,
+        component=component
     )
 
 
@@ -430,6 +438,7 @@ def xy_slice(
     filename: str | None = None,
     screenshot_size: float | None = None,
     percentile: float | None = None,
+    component: int|None = None,
 ) -> None:
     if path is None:
         path = Settings.default_output_path
@@ -448,8 +457,11 @@ def xy_slice(
         filename=filename,
         screenshot_size=screenshot_size,
         percentile=percentile,
-        view_up=PlaneNormals.XZ_flipped
+        view_up=PlaneNormals.XZ_flipped,
+        component=component
     )
+
+
 
 
 @allow_mesh
@@ -462,6 +474,7 @@ def yz_slice(
     filename: str | None = None,
     screenshot_size: float | None = None,
     percentile: float | None = None,
+    component: int|None = None,
 ) -> None:
     if percentile is None:
         percentile = Settings.percentile
@@ -479,7 +492,8 @@ def yz_slice(
         filename=filename,
         screenshot_size=screenshot_size,
         percentile=percentile,
-        view_up=PlaneNormals.XZ
+        view_up=PlaneNormals.XZ,
+        component=component
     )
 
 
