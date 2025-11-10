@@ -209,7 +209,7 @@ def main():
 
 
 
-    exit()
+    # exit()
 
     # particle_list = spisutils.get_particle_list(result)
     # spisutils.plot_pl_EDF(particle_list)

@@ -335,11 +335,7 @@ class ElectronDetector:
         return result
 
     def calculate_dt(self):
-<<<<<<< HEAD
         self.dt =  0.7 / np.sqrt(2 * self.energy * scipy.constants.eV / scipy.constants.electron_mass)
-=======
-        self.dt =  0.33 / np.sqrt(2 * self.energy * scipy.constants.eV / scipy.constants.electron_mass)
->>>>>>> 7b253976723ea57fb3d7f7767c1d8d1a5fa62464
         return self.dt
 
 
