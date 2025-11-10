@@ -155,25 +155,24 @@ def generate_efield_vector_property(simulation: Simulation):
     assert len(x_value) == 1
     x_property_name = x_value[0][1]
     # print(x_value[0][0].mesh.point_data)
-    x_array = x_value[0][0].mesh.get_array(x_property_name, "point") # type: ignore
+    x_array = x_value[0][0].mesh.get_array(x_property_name, "point")  # type: ignore
     x_array = typing.cast(npt.NDArray[np.float64], x_array)
-    
+
     y_value = glob_properties(simulation, "*finalplasma_elec_field_Ey*")
-    assert len(y_value) == 1    
+    assert len(y_value) == 1
     y_property_name = y_value[0][1]
-    y_array = y_value[0][0].mesh.get_array(y_property_name, "point") # type: ignore
+    y_array = y_value[0][0].mesh.get_array(y_property_name, "point")  # type: ignore
     y_array = typing.cast(npt.NDArray[np.float64], y_array)
-    
+
     z_value = glob_properties(simulation, "*finalplasma_elec_field_Ez*")
     assert len(z_value) == 1
     z_property_name = z_value[0][1]
-    z_array = z_value[0][0].mesh.get_array(z_property_name, "point") # type: ignore
+    z_array = z_value[0][0].mesh.get_array(z_property_name, "point")  # type: ignore
     z_array = typing.cast(npt.NDArray[np.float64], z_array)
-    
+
     assert z_value[0][0] == y_value[0][0] == x_value[0][0]
 
-
-    result = np.column_stack([x_array, y_array, z_array]) 
+    result = np.column_stack([x_array, y_array, z_array])
 
     # print(result)
 
@@ -182,29 +181,29 @@ def generate_efield_vector_property(simulation: Simulation):
     return x_value[0][0].mesh
 
 
-def normalize(v:Vector3D):
+def normalize(v: Vector3D):
     return v / np.linalg.norm(v)
 
-def cartesian_to_polar(point:Vector3D, direction:Vector3D, up:Vector3D):
-    """Convert a single XYZ point on a sphere to polar coordinates with specified reference and up directions"""
 
-    
+def cartesian_to_polar(point: Vector3D, direction: Vector3D, up: Vector3D):
+    """Convert a single XYZ point on a sphere to polar coordinates with specified reference and up directions"""
 
     point_normalized = normalize(point)
     direction_normalized = normalize(direction)
-    
+
     up_normalized = normalize(np.cross(direction_normalized, np.cross(direction_normalized, up)))
-    
+
     orthogonal_to_plane = normalize(np.cross(direction_normalized, up_normalized))
 
     cosine_of_azimuthal_angle = np.dot(point_normalized, orthogonal_to_plane)
 
-    projected_point = normalize(point_normalized - np.dot(orthogonal_to_plane, point_normalized)*orthogonal_to_plane)
+    projected_point = normalize(
+        point_normalized - np.dot(orthogonal_to_plane, point_normalized) * orthogonal_to_plane
+    )
 
     cosine_of_polar_angle = np.dot(projected_point, direction_normalized)
 
     theta = np.arcsin(cosine_of_azimuthal_angle)  # Azimuthal angle
     phi = np.arcsin(cosine_of_polar_angle)  # Polar angle
-    
 
     return theta, phi
