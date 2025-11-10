@@ -13,6 +13,7 @@ import multiprocessing
 import spisutils
 import pickle
 import scipy.constants as const
+import scipy.constants
 
 import pyvista
 import pyvista.plotting.plotter
@@ -75,7 +76,7 @@ def uniform_field_test(sim):
         return np.array((0,1,0))
     
     
-    deltatime = - 0000.1
+    deltatime = - 0.7 / np.sqrt(2 * 5 * scipy.constants.eV / scipy.constants.electron_mass)
 
 
     for energy in range(1,10,2):
@@ -98,36 +99,51 @@ def uniform_field_test(sim):
             electron_detector.euler_scheme(electron_euler, dt=deltatime, E = uniform_field(electron_euler.position))
             electron_detector.boris_scheme(electron_boris, dt=deltatime, E = uniform_field(electron_boris.position))
             electron_detector.rk_scheme(electron_rk, dt=deltatime, E = uniform_field(electron_rk.position), func_for_efield=uniform_field)
-
-
-    for e in electrons_euler:
-        positions_e_x = [x[0] for x in  e.position_history]
-        positions_e_y = [x[1] for x in  e.position_history]
-        plt.plot(positions_e_x, positions_e_y, c="red", label="Euler scheme")
-        
-    for e in electrons_rk:
-        positions_e_x = [x[0] for x in  e.position_history]
-        positions_e_y = [x[1] for x in  e.position_history]
-        plt.plot(positions_e_x, positions_e_y, c="green", label="RK2 scheme")
-        
-    for e in electrons_boris:
-        positions_e_x = [x[0] for x in  e.position_history]
-        positions_e_y = [x[1] for x in  e.position_history]
-        plt.plot(positions_e_x, positions_e_y, c="blue", label="Boris scheme")
-
+    
     def plot_analytical_position(energy:float):
         x = []
         y = []
         smoothness = 10
         speed = np.sqrt(2 * energy * const.eV/ const.electron_mass)
         for i in range(10 * smoothness):
-            x.append(speed * i * deltatime/smoothness)
+            x.append(- speed * i * deltatime/smoothness)
             y.append(0.5 * (-const.elementary_charge/ const.electron_mass) * (i * deltatime/smoothness) ** 2 )
         plt.plot(x, y, c="black", label="Analytical solution")
 
 
     for i in range(1, 10,2):
         plot_analytical_position(i)
+
+    for e in electrons_euler:
+        positions_e_x = [x[0] for x in  e.position_history]
+        positions_e_y = [x[1] for x in  e.position_history]
+        plt.plot(positions_e_x, positions_e_y, c="red")
+        
+    for e in electrons_rk:
+        positions_e_x = [x[0] for x in  e.position_history]
+        positions_e_y = [x[1] for x in  e.position_history]
+        plt.plot(positions_e_x, positions_e_y, c="green")
+        
+    for e in electrons_boris:
+        positions_e_x = [x[0] for x in  e.position_history]
+        positions_e_y = [x[1] for x in  e.position_history]
+        plt.plot(positions_e_x, positions_e_y, c="blue")
+
+    plt.xlabel("X position [m]")
+    plt.ylabel("Y position [m]")
+    plt.title("Trajectory of particles in an uniform electric field")
+
+    # Add manual legend
+    legend_elements = [
+        plt.Line2D([0], [0], color="red", label="Euler scheme"),
+        plt.Line2D([0], [0], color="green", label="RK2 scheme"),
+        plt.Line2D([0], [0], color="blue", label="Boris scheme"),
+        plt.Line2D([0], [0], color="black", label="Analytical solution"),
+    ]
+    plt.legend(handles=legend_elements)
+
+
+
 
     plt.show()
 
@@ -152,11 +168,14 @@ def main():
     result = reader.load_simulation(path, force_processing=False)
 
     # uniform_field_test(result)
+
+    # plotters.plot_final_quantities(result)
+
     # exit()
 
-    for detector in result.results.numerical_kernel_output.particle_detectors:
-        for plist in detector.particle_list:
-            reader.load_unloaded_particle_list(plist)
+    # for detector in result.results.numerical_kernel_output.particle_detectors:
+    #     for plist in detector.particle_list:
+    #         reader.load_unloaded_particle_list(plist)
 
     mesh = plotters.glob_properties(result, "*spacecraft*")[0][0]
 
@@ -165,16 +184,22 @@ def main():
     # particle_list = spisutils.get_particle_list(result)
     # spisutils.plot_pl_EDF(particle_list)
 
-    detector_1d_euler = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.Euler)
-    detector_1d_boris = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.Boris)
-    detector_1d_rk = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.RK)
-    plotters.plot_detectors_with_0_acceptance_angle([detector_1d_boris, detector_1d_euler, detector_1d_rk]) 
-    # plotters.plot_detectors_with_0_acceptance_angle([detector_1d_boris]) 
-    plotters.plot_detectors_with_0_acceptance_angle([detector_1d_euler]) 
+    # detector_1d_euler = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.Euler)
+    # detector_1d_boris = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.Boris)
+    # detector_1d_rk = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.RK)
+    # plotters.plot_detectors_with_0_acceptance_angle_ev([detector_1d_boris, detector_1d_euler, detector_1d_rk]) 
+    # plotters.plot_detectors_with_0_acceptance_angle([detector_1d_boris, detector_1d_euler, detector_1d_rk]) 
+    # # plotters.plot_detectors_with_0_acceptance_angle([detector_1d_boris]) 
+    # plotters.plot_detectors_with_0_acceptance_angle([detector_1d_euler]) 
 
-    plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_euler])
-    plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_boris, detector_1d_euler, detector_1d_rk])
+    # for e in detector_1d_rk.result_accumulator.particles:
+    #     print(e.starting_energy)
+    #     plotters.plot_electron_potential_history(e)
 
+    # plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_euler])
+    # plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_boris, detector_1d_euler, detector_1d_rk])
+
+    # exit()
     detectors: list[electron_detector.ElectronDetector] = []
     processes: list[multiprocessing.Process] = []
 
@@ -186,36 +211,42 @@ def main():
     # energies = [1]
     # energies = [2,4,8, 50]
     # energies = [50]
-    # energies = [0.5,1,1.5,2,2.5,3,4,5,6,7,8,12,16,24,32,64,85,120]
+    # energies = [0.5,1,1.5,2,2.5,3,4,5,6,7,8,16,24,32,64,85,120]
+    # energies = [240, 480, 960, 1920]
     # energies = [0.5,1,1.5,2,2.5,3,4,5,6,7,8,12,64,85,120]
     # energies = [2,2.5,3,4,5,6,7,8,12,64,85,120]
     # energies = [4,8,12,64]
-    energies = [64]
-    energies = [63]
-    # energies = [50]
+    # energies = [64]
+    # energies = [63]
+    # energies = [6,16,85]
+    # energies = [16]
     # energies = [120]
+    # energies = [120]
+    energies = [0.5,1,1.5,2,2.5,3,4,5,6,7,8,16,24,32,64,85,120,240, 480, 960, 1920]
+    # energies = [0.5,1,1.5,2,2.5,3,4,5,6,7,8]
+    # energies = [16]
 
-    backtrack_types = [electron_detector.BacktrackingTypes.Boris, electron_detector.BacktrackingTypes.Euler, electron_detector.BacktrackingTypes.RK]
+    # backtrack_types = [electron_detector.BacktrackingTypes.Boris, electron_detector.BacktrackingTypes.Euler, electron_detector.BacktrackingTypes.RK]
     # backtrack_types = [electron_detector.BacktrackingTypes.Boris, electron_detector.BacktrackingTypes.Euler]
-    # backtrack_types = [electron_detector.BacktrackingTypes.Boris]
+    backtrack_types = [electron_detector.BacktrackingTypes.Boris]
     # backtrack_types = [electron_detector.BacktrackingTypes.Euler]
-    backtrack_types = [electron_detector.BacktrackingTypes.RK]
+    # backtrack_types = [electron_detector.BacktrackingTypes.RK]
 
-    # if True:
-    #     for bt_type in backtrack_types:
-    #         for energy in energies: 
-    #             detector = electron_detector.ElectronDetector(result, energy=energy)
-    #             detector.number_of_steps = 30
-    #             detector.number_of_samples_phi = 20
-    #             detector.number_of_samples_theta = 20
-    #             detectors.append(detector)
+    if False:
+        for bt_type in backtrack_types:
+            for energy in energies: 
+                detector = electron_detector.ElectronDetector(result, energy=energy)
+                detector.number_of_steps = 2000
+                detector.number_of_samples_phi = 60
+                detector.number_of_samples_theta = 60
+                detectors.append(detector)
 
-    #             process = multiprocessing.Process(target=run_backtrack, args=(detector,energy, bt_type,))
-    #             process.start()
-    #             processes.append(process)
+                process = multiprocessing.Process(target=run_backtrack, args=(detector,energy, bt_type,))
+                process.start()
+                processes.append(process)
 
-    #     for process in processes:
-    #         process.join()
+        for process in processes:
+            process.join()
 
 
     detectors.clear()
@@ -237,19 +268,22 @@ def main():
 
     for detector in detectors:
         print(detector.energy)
-        # plotters.interactive_plot_mesh_with_typed_trajectories(mesh, detector.get_typed_trajectories())
-        plotters.interactive_plot_electron_detectors(mesh, [detector])
-
+        print(detector.backtracking_type.name)
+    #     # plotters.interactive_plot_mesh_with_typed_trajectories(mesh, detector.get_typed_trajectories())
+    #     # plotters.interactive_plot_electron_detectors(mesh, [detector])
 
 
 
         detector.result_accumulator.plot()
-
-    # plotters.plot_final_quantities(result)
+# # 
 
     # plotters.interactive_plot_electron_detectors(mesh, detectors)
 
-    # plotters.detectors_to_1d_distribution_bad(detectors)
+    # plotters.interactive_plot_electron_detectors_XY(mesh, detectors)
+
+    # plotters.interactive_plot_electron_detectors_XZ(mesh, detectors)
+
+    # plotters.detectors_to_1d_distribution(detectors)
 
 
     exit()

@@ -52,6 +52,12 @@ class Electron:
     collision_type: CollisionTypes = CollisionTypes.No_collision
 
     position_history: list[Vector3D] = dataclasses.field(default_factory=list)
+    potential_history: list[float] = dataclasses.field(default_factory=list)
+    energy_history : list[float] = dataclasses.field(default_factory=list)
+    dt_history : list[float] = dataclasses.field(default_factory=list)
+    
+
+    number_steps_taken: int = 0
 
     probability_ambient: float|None = None
     probability_photo: float|None = None
@@ -63,6 +69,15 @@ class Electron:
 
     def append_position_to_history(self):
         self.position_history.append(self.position)
+
+    def get_energy(self):
+        speed_squared = self.velocity[0]**2 + self.velocity[1]**2 + self.velocity[2]**2 
+
+        energy = 0.5 * speed_squared * self.MASS
+
+        
+
+        return energy / scipy.constants.value("electron volt-joule relationship")
 
 
 class ResultAccumulator():
@@ -117,7 +132,10 @@ class TripColorResultAccumulator(ResultAccumulator):
 
         # plt.scatter(ambient_xx,ambient_yy,c=ambient_cc, cmap="viridis")
         plt.tripcolor(ambient_xx,ambient_yy,ambient_cc, cmap="viridis")
-        plt.colorbar()
+        plt.title("3D distribution function for ambient electrons")
+        plt.ylabel("Elevation angle [rad]")
+        plt.xlabel("Azimuthal angle [rad]")
+        plt.colorbar().set_label("VDF [$m^{-6}s^3$]")
         plt.show()
 
 
@@ -133,24 +151,30 @@ class TripColorResultAccumulator(ResultAccumulator):
                 see_cc.append(0)        
 
         plt.tripcolor(see_xx,see_yy,see_cc, cmap="viridis")
-        plt.colorbar()
+        plt.title("3D distribution function for secondary electrons")
+        plt.ylabel("Elevation angle [rad]")
+        plt.xlabel("Azimuthal angle [rad]")
+        plt.colorbar().set_label("VDF [$m^{-6}s^3$]")
         plt.show()
 
 
-        photo_xx  = []
-        photo_yy = []
-        photo_cc = []
-        for i in self.particles:
-            photo_xx.append(i.origin[0])
-            photo_yy.append(i.origin[1])
-            if i.probability_photo is not None:
-                photo_cc.append(i.probability_photo)
-            else: 
-                photo_cc.append(0) 
+        # photo_xx  = []
+        # photo_yy = []
+        # photo_cc = []
+        # for i in self.particles:
+        #     photo_xx.append(i.origin[0])
+        #     photo_yy.append(i.origin[1])
+        #     if i.probability_photo is not None:
+        #         photo_cc.append(i.probability_photo)
+        #     else: 
+        #         photo_cc.append(0) 
 
-        plt.tripcolor(photo_xx,photo_yy,photo_cc, cmap="viridis")
-        plt.colorbar()
-        plt.show()
+        # plt.tripcolor(photo_xx,photo_yy,photo_cc, cmap="viridis")
+        # plt.title("3D distribution function for photoelectrons")
+        # plt.ylabel("Elevation angle [rad]")
+        # plt.xlabel("Azimuthal angle [rad]")
+        # plt.colorbar().set_label("VDF [$m^{-6}s^3$]")
+        # plt.show()
 
 
 # DEPRECATED
@@ -234,7 +258,7 @@ class ElectronDetector:
         self.position: Vector3D = np.array([3.4466, 0,-0.135])
         self.orientation: Vector3D = np.array([-1, 0, 0])
         self.updirection: Vector3D = np.array([0, 1 ,0])
-        self.radius: float = 0.03
+        self.radius: float = 0.09
         self.acceptance_angle_phi: float = np.pi * 2
         self.acceptance_angle_theta: float = np.pi /1
         self.backtracking_type: BacktrackingTypes = BacktrackingTypes.Euler
@@ -279,12 +303,16 @@ class ElectronDetector:
         density_val = utils.glob_properties(self.simulation, "final_elec1_charge_density*")
         utils.glob_properties(self.simulation, "*final_photoElec_charge_density*")
         utils.glob_properties(self.simulation, "*final_secondElec_BS*")
-
+        potential_val = utils.glob_properties(self.simulation, "*final_plasma_potential*")
         
+
+        self.potential_name = potential_val[0][1]
+        self.plasma_potential_mesh = potential_val[0][0]
+
         assert len(density_val) == 1 
         self.density_name = density_val[0][1]
         self.mesh = density_val[0][0]
-        self.charge_density_gradient = density_val[0][0].mesh.compute_derivative(scalars=self.density_name)
+        # self.charge_density_gradient = density_val[0][0].mesh.compute_derivative(scalars=self.density_name)
 
 
         # print(len(self.mesh.mesh['final_photoElec_charge_density_-_step0']), len(self.mesh.mesh['final_secondElec_BS_from_ambiant_electrons_charge_density_-_step0']), len(self.e_field_mesh["vector_electric_field"]))
@@ -298,7 +326,7 @@ class ElectronDetector:
         return result
 
     def calculate_dt(self):
-        self.dt =  0.5 / np.sqrt(2 * self.energy * scipy.constants.eV / scipy.constants.electron_mass)
+        self.dt =  0.7 / np.sqrt(2 * self.energy * scipy.constants.eV / scipy.constants.electron_mass)
         return self.dt
 
 
@@ -375,7 +403,7 @@ class ElectronDetector:
 
 
         for n, x in enumerate(directions):
-            log.info(f"Backtracking: row {n+1},  out of  {self.number_of_samples_phi} for energy {self.energy}")
+            print(f"Backtracking: row {n+1},  out of  {self.number_of_samples_phi} for energy {self.energy}")
             for m, y in enumerate(x): 
                 # print("Backtracking: column", m+1, " out of ", self.number_of_samples_theta)
 
@@ -391,6 +419,7 @@ class ElectronDetector:
 
 
     def backtrack(self):
+        self.number_of_steps = 1000
         if self.monte_carlo == True:
             self.backtrack_monte_carlo()
         else:
@@ -399,7 +428,7 @@ class ElectronDetector:
     def backtrack_one_electron(self, electron: Electron):
             collided = False
             step = 1
-            self.move_backwards(electron, self.dt/10)
+            self.move_backwards(electron, self.dt/1000)
 
             electron.position_history.append(electron.position)
             while not collided:
@@ -557,6 +586,14 @@ class ElectronDetector:
             raise Exception
         result = self.e_field_mesh["vector_electric_field"][id]
         return result
+    
+    def get_plasma_potential(self, position: Vector3D) -> Vector3D:
+        id: int = self.plasma_potential_mesh.mesh.find_closest_point(position) #type: ignore 
+        if id == -1: 
+            raise Exception
+        result = self.plasma_potential_mesh.mesh[self.potential_name][id]
+
+        return result
 
     def get_density(self, position: Vector3D) -> float:
         # id: int = self.mesh.mesh.find_containing_cell(position) #type: ignore 
@@ -584,7 +621,30 @@ class ElectronDetector:
     def move_backwards(self, electron: Electron, dt:float):
 
         E: Vector3D = self.get_electric_field(electron.position)
+
+        # electron.potential_history.append(self.get_plasma_potential(electron.position))
+        # electron.energy_history.append(electron.get_energy())
+        # electron.dt_history.append(dt)
+
+
+        electron.number_steps_taken += 1
+        if electron.number_steps_taken < 50:
+            dt *= 0.7
+
+        if electron.number_steps_taken < 3:
+            rk_scheme(electron, -dt, E, self.get_electric_field)
+            return
         
+        if electron.number_steps_taken < 50:
+            dt *= 0.7
+        if electron.number_steps_taken > 100:
+            dt *= 3
+        if electron.number_steps_taken > 200:
+            dt *= 4
+        if electron.number_steps_taken > 400:
+            dt *= 6
+        if electron.number_steps_taken > 800:
+            dt *= 8
 
         if self.backtracking_type == BacktrackingTypes.Euler:
             # Euler scheme
