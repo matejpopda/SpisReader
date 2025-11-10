@@ -315,6 +315,15 @@ class ElectronDetector:
         # self.charge_density_gradient = density_val[0][0].mesh.compute_derivative(scalars=self.density_name)
 
 
+        potential_val = utils.glob_properties(self.simulation, "final_plasma_potential*")
+        assert len(potential_val) == 1 
+        self.potential_name = potential_val[0][1]
+        self.electric_field_from_potential = potential_val[0][0].mesh.compute_derivative(scalars=self.potential_name)
+
+        
+
+
+
         # print(len(self.mesh.mesh['final_photoElec_charge_density_-_step0']), len(self.mesh.mesh['final_secondElec_BS_from_ambiant_electrons_charge_density_-_step0']), len(self.e_field_mesh["vector_electric_field"]))
 
 
@@ -326,7 +335,11 @@ class ElectronDetector:
         return result
 
     def calculate_dt(self):
+<<<<<<< HEAD
         self.dt =  0.7 / np.sqrt(2 * self.energy * scipy.constants.eV / scipy.constants.electron_mass)
+=======
+        self.dt =  0.33 / np.sqrt(2 * self.energy * scipy.constants.eV / scipy.constants.electron_mass)
+>>>>>>> 7b253976723ea57fb3d7f7767c1d8d1a5fa62464
         return self.dt
 
 
