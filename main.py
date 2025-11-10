@@ -196,16 +196,16 @@ def main():
      
     pass 
 
-    clim = (-50, 48)
-    for comp, name in [[None, "mag"], [0, "xz"], [1, "xy"], [2, "yz"]]:
-        plotters.xz_slice(x.electric_field_from_potential, property="gradient", component=comp, filename=name + "_xz_calculated", percentile=clim)
-        plotters.xz_slice(x.e_field_mesh, property="vector_electric_field", component=comp, filename=name + "_xz_spis", percentile=clim)
+    # clim = (-50, 48)
+    # for comp, name in [[None, "mag"], [0, "xz"], [1, "xy"], [2, "yz"]]:
+    #     plotters.xz_slice(x.electric_field_from_potential, property="gradient", component=comp, filename=name + "_xz_calculated", percentile=clim)
+    #     plotters.xz_slice(x.e_field_mesh, property="vector_electric_field", component=comp, filename=name + "_xz_spis", percentile=clim)
         
-        plotters.xy_slice(x.electric_field_from_potential, property="gradient", component=comp, filename=name + "_xy_calculated", percentile=clim)
-        plotters.xy_slice(x.e_field_mesh, property="vector_electric_field", component=comp, filename=name + "_xy_spis", percentile=clim)
+    #     plotters.xy_slice(x.electric_field_from_potential, property="gradient", component=comp, filename=name + "_xy_calculated", percentile=clim)
+    #     plotters.xy_slice(x.e_field_mesh, property="vector_electric_field", component=comp, filename=name + "_xy_spis", percentile=clim)
 
-        plotters.yz_slice(x.electric_field_from_potential, property="gradient", component=comp, filename=name + "_yz_calculated", percentile=clim)
-        plotters.yz_slice(x.e_field_mesh, property="vector_electric_field", component=comp, filename=name + "_yz_spis", percentile=clim)
+    #     plotters.yz_slice(x.electric_field_from_potential, property="gradient", component=comp, filename=name + "_yz_calculated", percentile=clim)
+    #     plotters.yz_slice(x.e_field_mesh, property="vector_electric_field", component=comp, filename=name + "_yz_spis", percentile=clim)
 
 
 
@@ -214,18 +214,18 @@ def main():
     # particle_list = spisutils.get_particle_list(result)
     # spisutils.plot_pl_EDF(particle_list)
 
-    detector_1d_euler = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.Euler)
-    detector_1d_boris = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.Boris)
-    detector_1d_rk = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.RK)
+    # detector_1d_euler = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.Euler)
+    # detector_1d_boris = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.Boris)
+    # detector_1d_rk = simulate_1d_detector(result, force_sim=False, bt_type = electron_detector.BacktrackingTypes.RK)
 
-    detector_1d_euler.result_accumulator.plot_energies_against_probability()
-    detector_1d_boris.result_accumulator.plot_energies_against_probability()
-    detector_1d_rk.result_accumulator.plot_energies_against_probability()
-    plotters.plot_detectors_with_0_acceptance_angle([detector_1d_boris, detector_1d_euler, detector_1d_rk]) 
-    # plotters.plot_detectors_with_0_acceptance_angle([detector_1d_boris]) 
+    # detector_1d_euler.result_accumulator.plot_energies_against_probability()
+    # detector_1d_boris.result_accumulator.plot_energies_against_probability()
+    # detector_1d_rk.result_accumulator.plot_energies_against_probability()
+    # plotters.plot_detectors_with_0_acceptance_angle([detector_1d_boris, detector_1d_euler, detector_1d_rk]) 
+    # # plotters.plot_detectors_with_0_acceptance_angle([detector_1d_boris]) 
 
     # plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_rk])
-    plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_boris, detector_1d_euler, detector_1d_rk])
+    # plotters.interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh, [detector_1d_boris, detector_1d_euler, detector_1d_rk])
 
     # exit()
     detectors: list[electron_detector.ElectronDetector] = []
@@ -249,18 +249,18 @@ def main():
     # energies = [4,8,12,64]
     # energies = [64]
     # energies = [63]
-    # energies = [6,16,85]
+    energies = [6,16,85]
     # energies = [16]
     # energies = [120]
     # energies = [120]
-    energies = [0.5,1,1.5,2,2.5,3,4,5,6,7,8,16,24,32,64,85,120,240, 480, 960, 1920]
+    # energies = [0.5,1,1.5,2,2.5,3,4,5,6,7,8,16,24,32,64,85,120,240, 480, 960, 1920]
     # energies = [0.5,1,1.5,2,2.5,3,4,5,6,7,8]
     # energies = [16]
 
     # backtrack_types = [electron_detector.BacktrackingTypes.Boris, electron_detector.BacktrackingTypes.Euler, electron_detector.BacktrackingTypes.RK]
     # backtrack_types = [electron_detector.BacktrackingTypes.Boris, electron_detector.BacktrackingTypes.Euler]
     backtrack_types = [electron_detector.BacktrackingTypes.Boris]
-    # backtrack_types = [electron_detector.BacktrackingTypes.Euler]
+    backtrack_types = [electron_detector.BacktrackingTypes.Euler]
     # backtrack_types = [electron_detector.BacktrackingTypes.RK]
 
     if True:

@@ -7,8 +7,8 @@ import typing
 
 from typing import TypeAlias, Literal
 
-Vector3D: TypeAlias = np.ndarray[tuple[Literal[3]], np.dtype[np.float64]]
-Vector2D: TypeAlias = np.ndarray[tuple[Literal[3]], np.dtype[np.float64]]
+Vector3D: TypeAlias = npt.NDArray[np.floating[typing.Any]]
+Vector2D: TypeAlias = npt.NDArray[np.floating[typing.Any]]
 
 
 def glob_properties(

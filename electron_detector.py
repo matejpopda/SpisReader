@@ -15,10 +15,11 @@ import pickle
 
 
 import default_settings
+import numpy.typing as npt
+import typing
 
-Vector3D: TypeAlias = np.ndarray[tuple[Literal[3]], np.dtype[np.float64]]
-Vector2D: TypeAlias = np.ndarray[tuple[Literal[2]], np.dtype[np.float64]]
-
+Vector3D: TypeAlias = npt.NDArray[np.floating[typing.Any]]
+Vector2D: TypeAlias = npt.NDArray[np.floating[typing.Any]]
 
 
 DEFAULT_PROJECTION_DIRECTION: Vector3D = np.array([1,0,0])
