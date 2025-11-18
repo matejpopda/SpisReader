@@ -81,7 +81,8 @@ def get_simulation_results(path_to_results: Path) -> SimulationResults:
 @LogFileOpening
 def get_groups(path: Path) -> list[Group]:
     if not path.exists():
-        raise FileNotFoundError("Missing file " + str(path))
+        log.error("Missing file " + str(path) + " Groups will not be loaded")
+        # raise FileNotFoundError()
 
     result: list[Group] = []
 
