@@ -82,4 +82,5 @@ class BasePlotter(PickingHelper, WidgetHelper):
         show_vertices: Optional[bool] = None,
         edge_opacity: Optional[float] = None,
         **kwargs: Optional[dict[Any, Any]],
-    ) -> pyvista.plotting.actor.Actor: ...
+    ) -> pyvista.plotting.actor.Actor:
+        ...
