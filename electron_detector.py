@@ -81,32 +81,22 @@ class Electron:
         return energy / scipy.constants.value("electron volt-joule relationship")
 
 
-class ResultAccumulator():
+
+
+class ResultAccumulator:
     def __init__(self) -> None:
+
         self.particles: list[Electron] = []
+
     def add_particle(self, electron: Electron):
-        pass
-
-    def plot(self):
-        pass
-
-    def save(self):
-        pass
-
+        self.particles.append(electron)
+    
     def plot_energies_against_probability(self):
         for particle in self.particles:
             if particle.probability_ambient is not None: 
                 plt.scatter(particle.starting_energy, particle.probability_ambient)
         plt.show()
 
-
-class TripColorResultAccumulator(ResultAccumulator):
-    def __init__(self) -> None:
-        super().__init__()
-        self.particles: list[Electron] = []
-
-    def add_particle(self, electron: Electron):
-        self.particles.append(electron)
 
     def plot(self):
         
@@ -131,7 +121,6 @@ class TripColorResultAccumulator(ResultAccumulator):
             else: 
                 ambient_cc.append(0)        
 
-        # plt.scatter(ambient_xx,ambient_yy,c=ambient_cc, cmap="viridis")
         plt.tripcolor(ambient_xx,ambient_yy,ambient_cc, cmap="viridis")
         plt.title("3D distribution function for ambient electrons")
         plt.ylabel("Elevation angle [rad]")
@@ -159,80 +148,6 @@ class TripColorResultAccumulator(ResultAccumulator):
         plt.show()
 
 
-        # photo_xx  = []
-        # photo_yy = []
-        # photo_cc = []
-        # for i in self.particles:
-        #     photo_xx.append(i.origin[0])
-        #     photo_yy.append(i.origin[1])
-        #     if i.probability_photo is not None:
-        #         photo_cc.append(i.probability_photo)
-        #     else: 
-        #         photo_cc.append(0) 
-
-        # plt.tripcolor(photo_xx,photo_yy,photo_cc, cmap="viridis")
-        # plt.title("3D distribution function for photoelectrons")
-        # plt.ylabel("Elevation angle [rad]")
-        # plt.xlabel("Azimuthal angle [rad]")
-        # plt.colorbar().set_label("VDF [$m^{-6}s^3$]")
-        # plt.show()
-
-
-# DEPRECATED
-class ScatterResultAccumulator(ResultAccumulator):
-    def __init__(self) -> None:
-        super().__init__()
-        self.particles: list[Electron] = []
-
-    def add_particle(self, electron: Electron):
-        self.particles.append(electron)
-
-    def plot(self):
-        
-        # find global min max
-        minimum = 10
-        maximum = 0
-        for i in self.particles:
-            for current_val in [i.probability_ambient, i.probability_photo, i.probability_secondary]:
-                if current_val is None:
-                    break
-                minimum = min(minimum, current_val)
-                maximum = max(maximum, current_val)
-
-        ambient_xx  = []
-        ambient_yy = []
-        ambient_cc = []
-        for i in self.particles:
-            ambient_xx.append(i.origin[0])
-            ambient_yy.append(i.origin[1])
-            if i.probability_ambient is not None:
-                ambient_cc.append(i.probability_ambient)
-            else: 
-                ambient_cc.append(0)        
-
-        plt.scatter(ambient_xx,ambient_yy,c=ambient_cc, cmap="viridis")
-        # plt.tripcolor(xx,yy,cc, cmap="viridis")
-        plt.colorbar()
-        plt.show()
-
-
-        see_xx  = []
-        see_yy = []
-        see_cc = []
-        for i in self.particles:
-            see_xx.append(i.origin[0])
-            see_yy.append(i.origin[1])
-            if i.probability_secondary is not None:
-                see_cc.append(i.probability_secondary)
-            else: 
-                see_cc.append(0)        
-
-        plt.scatter(see_xx,see_yy,c=see_cc, cmap="viridis")
-        # plt.tripcolor(xx,yy,cc, cmap="viridis")
-        plt.colorbar()
-        plt.show()
-
-
         photo_xx  = []
         photo_yy = []
         photo_cc = []
@@ -242,11 +157,13 @@ class ScatterResultAccumulator(ResultAccumulator):
             if i.probability_photo is not None:
                 photo_cc.append(i.probability_photo)
             else: 
-                photo_cc.append(0)        
+                photo_cc.append(0) 
 
-        plt.scatter(photo_xx,photo_yy,c=photo_cc, cmap="viridis")
-        # plt.tripcolor(xx,yy,cc, cmap="viridis")
-        plt.colorbar()
+        plt.tripcolor(photo_xx,photo_yy,photo_cc, cmap="viridis")
+        plt.title("3D distribution function for photoelectrons")
+        plt.ylabel("Elevation angle [rad]")
+        plt.xlabel("Azimuthal angle [rad]")
+        plt.colorbar().set_label("VDF [$m^{-6}s^3$]")
         plt.show()
 
 
@@ -254,15 +171,16 @@ class ScatterResultAccumulator(ResultAccumulator):
 
 
 class ElectronDetector:
-    def __init__(self, data: simulation.Simulation, energy:float = 15) -> None:
+    def __init__(self, data: simulation.Simulation, position:Vector3D, radius:float,  energy:float, facing:Vector3D = np.array([-1, 0, 0]),updirection:Vector3D = np.array([0, 1 ,0])
+                 , acceptance_angle_phi: float = np.pi * 2 ,acceptance_angle_theta: float = np.pi, number_of_samples_theta: int = 5, number_of_samples_phi: int = 5, max_number_of_steps: int = 10, boundary_temperature: float = 103000 ) -> None:
         self.particles: list[Electron] = []
-        self.position: Vector3D = np.array([3.4466, 0,-0.135])
-        self.orientation: Vector3D = np.array([-1, 0, 0])
-        self.updirection: Vector3D = np.array([0, 1 ,0])
-        self.radius: float = 0.09
-        self.acceptance_angle_phi: float = np.pi * 2
-        self.acceptance_angle_theta: float = np.pi /1
-        self.backtracking_type: BacktrackingTypes = BacktrackingTypes.Euler
+        self.position: Vector3D = position
+        self.orientation: Vector3D = facing
+        self.updirection: Vector3D = updirection
+        self.radius: float = radius
+        self.acceptance_angle_phi: float = acceptance_angle_phi
+        self.acceptance_angle_theta: float = acceptance_angle_theta
+        self.backtracking_type: BacktrackingTypes = BacktrackingTypes.RK
 
 
         ## 2, 14, 50 in eV
@@ -275,19 +193,19 @@ class ElectronDetector:
         self.dt: float = self.calculate_dt()
 
 
-        self.number_of_samples_theta: int = 40
-        self.number_of_samples_phi: int = 40
+        self.number_of_samples_theta: int = number_of_samples_theta
+        self.number_of_samples_phi: int = number_of_samples_phi
         
-        self.number_of_steps: int = 250
+        self.number_of_steps: int = max_number_of_steps
 
 
         self.simulation: simulation.Simulation = data
 
-        self.result_accumulator : ResultAccumulator = TripColorResultAccumulator()
+        self.result_accumulator : ResultAccumulator = ResultAccumulator()
 
 
         # probability calc
-        self.boundary_temperature = 103000 #for 8.9 eV
+        self.boundary_temperature = boundary_temperature #for 8.9 eV its 103000
 
 
 
@@ -313,20 +231,12 @@ class ElectronDetector:
         assert len(density_val) == 1 
         self.density_name = density_val[0][1]
         self.mesh = density_val[0][0]
-        # self.charge_density_gradient = density_val[0][0].mesh.compute_derivative(scalars=self.density_name)
 
 
         potential_val = utils.glob_properties(self.simulation, "final_plasma_potential*")
         assert len(potential_val) == 1 
         self.potential_name = potential_val[0][1]
         self.electric_field_from_potential = potential_val[0][0].mesh.compute_derivative(scalars=self.potential_name)
-
-        
-
-
-
-        # print(len(self.mesh.mesh['final_photoElec_charge_density_-_step0']), len(self.mesh.mesh['final_secondElec_BS_from_ambiant_electrons_charge_density_-_step0']), len(self.e_field_mesh["vector_electric_field"]))
-
 
 
     def get_trajectories(self):
@@ -387,7 +297,6 @@ class ElectronDetector:
                 x = np.sin(theta) * np.cos(phi)
                 y = np.sin(phi)
                 z = np.cos(theta) * np.cos(phi)
-                # local_dir = np.array([x, y, z])
                 
                 # Rotate into world space using camera basis
                 world_dir = (
@@ -399,26 +308,13 @@ class ElectronDetector:
                 row.append(world_dir)
             directions.append(row)
 
-        # acceptance_angle_modifier = self.acceptance_angle / (2*np.pi)
-        
-        # rotate_y = 0
-        # rotate_x = -np.pi
-
-        # start_y = (-np.pi/2 + rotate_y) * acceptance_angle_modifier
-        # end_y = (np.pi/2 + rotate_y) * acceptance_angle_modifier
-        # start_x = (-np.pi + rotate_x) * acceptance_angle_modifier
-        # end_x = (np.pi + rotate_x) * acceptance_angle_modifier
-
-
-
-
         for n, x in enumerate(directions):
             print(f"Backtracking: row {n+1},  out of  {self.number_of_samples_phi} for energy {self.energy}")
             for m, y in enumerate(x): 
                 # print("Backtracking: column", m+1, " out of ", self.number_of_samples_theta)
 
 
-                electron = self.generate_electron_vector(y, (thetas[m], phis[n]))
+                electron = self.generate_electron_vector(y, (thetas[m], phis[n])) #type: ignore 
 
                 self.backtrack_one_electron(electron)
 
@@ -429,7 +325,6 @@ class ElectronDetector:
 
 
     def backtrack(self):
-        self.number_of_steps = 1000
         if self.monte_carlo == True:
             self.backtrack_monte_carlo()
         else:
@@ -438,7 +333,7 @@ class ElectronDetector:
     def backtrack_one_electron(self, electron: Electron):
             collided = False
             step = 1
-            self.move_backwards(electron, self.dt/1000)
+            self.move_backwards(electron, self.dt/1000) # Initializing the electron
 
             electron.position_history.append(electron.position)
             while not collided:
