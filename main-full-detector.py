@@ -7,8 +7,6 @@ import electron_detector
 import numpy as np
 import configparser
 import argparse
-import pickle
-import plotters
 
 import matplotlib
 matplotlib.use('TKAgg')
@@ -27,7 +25,7 @@ def main():
         path_string = args.Input
     else:
         log.error("Missing config file path")
-        path_string = r"C:\Users\matej\OneDrive - České vysoké učení technické v Praze\Plocha\Dulezite\Skola\vyzkumak\SpisReader\example.config"
+        path_string = "C:/temp/DP/SpisReader/example.config"
 
 
     config = configparser.ConfigParser()
@@ -72,11 +70,7 @@ def main():
     detector.save_self(default_settings.Settings.default_pickle_path / f"Detector_energy={energy}.pkl")
     print("Ended energy ", energy)
 
-    detector = reader.load_pickle(pathlib.Path("./temp/Detector_energy=50.0.pkl"))
 
-    detector.result_accumulator.plot()
-
-    plotters.interactive_plot_electron_detectors(simulation.preprocessing.model.mesh, [detector])
 
 
 

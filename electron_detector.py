@@ -12,7 +12,7 @@ import scipy.constants as consts
 import pandas as pd 
 import logging as log
 import pickle
-
+from multiprocessing import Pool
 
 import default_settings
 import numpy.typing as npt
@@ -23,6 +23,24 @@ Vector2D: TypeAlias = npt.NDArray[np.floating[typing.Any]]
 
 
 DEFAULT_PROJECTION_DIRECTION: Vector3D = np.array([1,0,0])
+
+
+MAX_PROCESSES = 5
+
+DETECTOR: "ElectronDetector" = None
+
+def init_worker(detector_instance):
+    print("Initializing worker")
+    global DETECTOR
+    DETECTOR = detector_instance
+
+def backtrack_worker(idx):
+    print(f"Started backtracking {idx} electron")
+    electron = DETECTOR.particles[idx]
+    DETECTOR.backtrack_one_electron(electron)
+    print(f"Done backtracking {idx} electron")
+    return electron  
+
 
 class CollisionTypes(Enum):
     No_collision = 0
@@ -169,7 +187,6 @@ class ResultAccumulator:
 
 
 
-
 class ElectronDetector:
     def __init__(self, data: simulation.Simulation, position:Vector3D, radius:float,  energy:float, facing:Vector3D = np.array([-1, 0, 0]),updirection:Vector3D = np.array([0, 1 ,0])
                  , acceptance_angle_phi: float = np.pi * 2 ,acceptance_angle_theta: float = np.pi, number_of_samples_theta: int = 5, number_of_samples_phi: int = 5, max_number_of_steps: int = 10, boundary_temperature: float = 103000 ) -> None:
@@ -257,17 +274,12 @@ class ElectronDetector:
         return result
 
 
-    def backtrack_monte_carlo(self):
+    def generate_electrons_monte_carlo(self):
         for i in range(self.number_of_samples):
             if i % 50 == 0:
                 print("sample", i, " from ", self.number_of_samples)
 
             electron = self.generate_electron()
-
-            self.backtrack_one_electron(electron)
-
-            if electron.collision_type != CollisionTypes.No_collision:
-                self.accumulate_collision(electron)
 
         return 
     
@@ -275,7 +287,7 @@ class ElectronDetector:
         with open(filename, 'wb') as f:
             pickle.dump(self, f)
     
-    def backtrack_grid(self):
+    def generate_electrons_grid(self):
         
 
         def normalize(v: Vector3D) -> Vector3D:
@@ -309,26 +321,45 @@ class ElectronDetector:
             directions.append(row)
 
         for n, x in enumerate(directions):
-            print(f"Backtracking: row {n+1},  out of  {self.number_of_samples_phi} for energy {self.energy}")
+            # print(f"Backtracking: row {n+1},  out of  {self.number_of_samples_phi} for energy {self.energy}")
             for m, y in enumerate(x): 
                 # print("Backtracking: column", m+1, " out of ", self.number_of_samples_theta)
 
 
                 electron = self.generate_electron_vector(y, (thetas[m], phis[n])) #type: ignore 
 
-                self.backtrack_one_electron(electron)
+                # self.backtrack_one_electron(electron)
 
-                if electron.collision_type != CollisionTypes.No_collision:
-                    self.accumulate_collision(electron)
+                # if electron.collision_type != CollisionTypes.No_collision:
+                #     self.accumulate_collision(electron)
 
         return 
 
 
+
+
     def backtrack(self):
         if self.monte_carlo == True:
-            self.backtrack_monte_carlo()
+            self.generate_electrons_monte_carlo()
         else:
-            self.backtrack_grid()
+            self.generate_electrons_grid()
+
+
+
+        with Pool(
+            processes=MAX_PROCESSES,
+            initializer=init_worker,
+            initargs=(self,)
+        ) as pool:
+            updated_particles = list(pool.imap_unordered(backtrack_worker, range(len(self.particles)), max(1, len(self.particles) // MAX_PROCESSES)))
+
+        self.particles = updated_particles
+        for electron in self.particles:
+            if electron.collision_type != CollisionTypes.No_collision:
+                    self.accumulate_collision(electron)
+
+
+        
 
     def backtrack_one_electron(self, electron: Electron):
             collided = False
@@ -462,7 +493,7 @@ class ElectronDetector:
         if id == -1: 
             raise Exception
 
-        particle_count = 10**7
+        particle_count = 10**7 # TODO 
 
         if electron.probability_ambient is not None:
             result:float = electron.probability_ambient * particle_count

@@ -580,10 +580,9 @@ def save_simulation_as_pickle(simulation: Simulation, path: Path):
 
 
 @LogFileOpening
-def load_pickle(path: Path) -> Simulation:
+def load_pickle(path: Path):
     with open(path, "rb") as f:
         deserialized_object = pickle.load(f)
-    assert isinstance(deserialized_object, Simulation)
     return deserialized_object
 
 

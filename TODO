@@ -1,11 +1,3 @@
-Co za obrázky
-Srovnání trajektorií pro různé integrační metody
-
-Ověření proti SPISU
-
-2D Projekce
-
-# Work over holidays
 
 2d trajectories - 
 plot error of each method for different dts. 
@@ -18,11 +10,6 @@ Figure out why there is an error in the last image.
 
 
 
-Figure out how to use jython to build spis projects 
-There is a folder in the spis installation directory /resources/scripts
 
 
-FIX READER - when a file is missing it should not crash, just set it to none
-Numerical results does it. 
-
-
+Default settings should be in the config file
