@@ -121,7 +121,6 @@ def interactive_plot_physical_mesh(mesh: DataSet) -> None:
     interactive_plot_mesh(mesh, "gmsh:physical")
 
 
-
 @allow_mesh
 def interactive_plot_mesh(mesh: DataSet, property: str) -> None:
     plotter = Plotter()
@@ -129,17 +128,15 @@ def interactive_plot_mesh(mesh: DataSet, property: str) -> None:
     plotter.show()  # type: ignore
 
 
-
 @allow_mesh
-def interactive_plot_mesh_with_trajectories(mesh: DataSet, trajectories: list[list[vector]] ) -> None:
+def interactive_plot_mesh_with_trajectories(mesh: DataSet, trajectories: list[list[vector]]) -> None:
     plotter = Plotter()
-    plotter.add_mesh(mesh, scalars= "gmsh:physical")  # type: ignore
+    plotter.add_mesh(mesh, scalars="gmsh:physical")  # type: ignore
 
     for trajectory in trajectories:
         # print(trajectory)
-        line = pyvista.core.utilities.points.lines_from_points(trajectory) # type: ignore
-        plotter.add_mesh(line, color="black") # type: ignore
-
+        line = pyvista.core.utilities.points.lines_from_points(trajectory)  # type: ignore
+        plotter.add_mesh(line, color="black")  # type: ignore
 
     plotter.show()  # type: ignore
 
@@ -150,20 +147,18 @@ def plot_detectors_with_0_acceptance_angle(detectors: list[electron_detector.Ele
         ambient_probs = []
         sec_probs = []
         for particle in detector.result_accumulator.particles:
-            if particle.probability_ambient is None: 
+            if particle.probability_ambient is None:
                 ambient_probs.append(None)
-            else :
+            else:
                 ambient_probs.append(particle.probability_ambient)  # * 6.24e16
 
-            if particle.probability_secondary is None: 
+            if particle.probability_secondary is None:
                 sec_probs.append(None)
-            else :
+            else:
                 sec_probs.append(particle.probability_secondary)  # * 6.24e16
 
-        
-
-            energies.append(particle.starting_energy) 
-            ambient_probs.append(particle.probability_ambient * 6.24 * 10**18) 
+            energies.append(particle.starting_energy)
+            ambient_probs.append(particle.probability_ambient * 6.24 * 10**18)
             sec_probs.append(particle.probability_secondary)
 
         plt.scatter(energies, ambient_probs, label=f"Detector {detector.backtracking_type.name} - Ambient")
@@ -178,26 +173,23 @@ def plot_detectors_with_0_acceptance_angle(detectors: list[electron_detector.Ele
 
 
 def plot_detectors_with_0_acceptance_angle_ev(detectors: list[electron_detector.ElectronDetector]):
-    
     for detector in detectors:
         energies = []
         ambient_probs = []
         sec_probs = []
         for particle in detector.result_accumulator.particles:
             correction_factor = 1.0 / np.sqrt(2 * particle.MASS * particle.CHARGE * particle.starting_energy)
-            if particle.probability_ambient is None: 
+            if particle.probability_ambient is None:
                 ambient_probs.append(None)
-            else :
+            else:
                 ambient_probs.append(particle.probability_ambient * correction_factor)  # * 6.24e16
 
-            if particle.probability_secondary is None: 
+            if particle.probability_secondary is None:
                 sec_probs.append(None)
-            else :
+            else:
                 sec_probs.append(particle.probability_secondary * correction_factor)  # * 6.24e16
 
-        
-
-            energies.append(particle.starting_energy) 
+            energies.append(particle.starting_energy)
 
         plt.scatter(energies, ambient_probs, label=f"Detector {detector.backtracking_type.name} - Ambient")
         # plt.scatter(energies, sec_probs, label=f"Detector {detector.backtracking_type.name}  - Secondary")
@@ -210,25 +202,25 @@ def plot_detectors_with_0_acceptance_angle_ev(detectors: list[electron_detector.
     plt.show()
 
 
-
 def plot_electron_potential_history(electron: electron_detector.Electron):
     x: list[float] = []
     dts: list[float] = []
-    y : list[float] = []
-    
-    z : list[float] = []
-    
+    y: list[float] = []
 
-    for i, (dt, energy, potential) in enumerate(zip(electron.dt_history,electron.energy_history, electron.potential_history)):
+    z: list[float] = []
+
+    for i, (dt, energy, potential) in enumerate(
+        zip(electron.dt_history, electron.energy_history, electron.potential_history)
+    ):
         if i < 1:
             continue
-        x.append(sum(dts)+ dt)
+        x.append(sum(dts) + dt)
         dts.append(dt)
         y.append(energy)
         z.append(potential)
-    
-    plt.scatter(x,y, label="Particles kinetic energy", c="blue")
-    plt.plot(x,z, label="Plasma potential", c="black")
+
+    plt.scatter(x, y, label="Particles kinetic energy", c="blue")
+    plt.plot(x, z, label="Plasma potential", c="black")
     plt.legend()
     plt.ylabel("Particle energy/ Plasma potential [eV]")
     plt.title("Comparison of plasma potential with particles kinetic energy")
@@ -236,12 +228,11 @@ def plot_electron_potential_history(electron: electron_detector.Electron):
     plt.show()
 
 
-
 def detectors_to_1d_distribution_bad(detectors: list[electron_detector.ElectronDetector]):
-    energy:list[float] = []
-    p_ambient:list[float] = []
-    p_seee:list[float] = []
-    p_photo:list[float] = []
+    energy: list[float] = []
+    p_ambient: list[float] = []
+    p_seee: list[float] = []
+    p_photo: list[float] = []
     p_total: list[float] = []
 
     def calculate_avg_probability(detector: electron_detector.ElectronDetector):
@@ -261,9 +252,7 @@ def detectors_to_1d_distribution_bad(detectors: list[electron_detector.ElectronD
                 result_photo += particle.probability_photo
                 result_total += particle.probability_photo
 
-            
-
-        p_ambient.append(result_ambient/len(detector.result_accumulator.particles))
+        p_ambient.append(result_ambient / len(detector.result_accumulator.particles))
         p_seee.append(result_seee / len(detector.result_accumulator.particles))
         p_photo.append(result_photo / len(detector.result_accumulator.particles))
         p_total.append(result_total / len(detector.result_accumulator.particles))
@@ -272,7 +261,7 @@ def detectors_to_1d_distribution_bad(detectors: list[electron_detector.ElectronD
         # p_seee.append(result_seee )
         # p_photo.append(result_photo )
 
-    for detector in detectors: 
+    for detector in detectors:
         energy.append(detector.energy)
         calculate_avg_probability(detector)
 
@@ -280,18 +269,16 @@ def detectors_to_1d_distribution_bad(detectors: list[electron_detector.ElectronD
     plt.scatter(energy, p_seee, c="green")
     plt.scatter(energy, p_photo, c="orange")
     plt.scatter(energy, p_total, c="black")
-    # plt.yscale('log')  
-    plt.xscale('log')  
+    # plt.yscale('log')
+    plt.xscale("log")
     plt.show()
 
 
-
-
 def detectors_to_1d_distribution(detectors: list[electron_detector.ElectronDetector]):
-    energy:list[float] = []
-    p_ambient:list[float] = []
-    p_seee:list[float] = []
-    p_photo:list[float] = []
+    energy: list[float] = []
+    p_ambient: list[float] = []
+    p_seee: list[float] = []
+    p_photo: list[float] = []
     p_total: list[float] = []
 
     def calculate_probability(detector: electron_detector.ElectronDetector):
@@ -302,7 +289,7 @@ def detectors_to_1d_distribution(detectors: list[electron_detector.ElectronDetec
 
         for particle in detector.result_accumulator.particles:
             particle.collision_type
-            particle.origin # phi and theta on a sphere
+            particle.origin  # phi and theta on a sphere
 
             if particle.probability_ambient is not None:
                 result_ambient += particle.probability_ambient * np.cos(particle.origin[1])
@@ -314,27 +301,23 @@ def detectors_to_1d_distribution(detectors: list[electron_detector.ElectronDetec
                 result_photo += particle.probability_photo * np.cos(particle.origin[1])
                 result_total += particle.probability_photo * np.cos(particle.origin[1])
 
-
         p_ambient.append(result_ambient)
-        p_seee.append(result_seee )
-        p_photo.append(result_photo )
-        p_total.append(result_total )
+        p_seee.append(result_seee)
+        p_photo.append(result_photo)
+        p_total.append(result_total)
 
-
-
-    for detector in detectors: 
+    for detector in detectors:
         energy.append(detector.energy)
         calculate_probability(detector)
-
 
         # for i,j,k in zip(p_ambient, p_photo, p_seee):
         #     p_total.append(i+j+k)
 
     plt.scatter(energy, p_ambient, c="blue", label="Ambient electrons")
-    plt.scatter(energy, p_seee, c="green", label= "Secondary electrons")
+    plt.scatter(energy, p_seee, c="green", label="Secondary electrons")
     # plt.scatter(energy, p_photo, c="orange")
-    plt.plot(energy, p_total, c="black", label = "Total electrons")
-    plt.axvline(x=13.9, color='r', linestyle='--', label='Spacecraft potential')
+    plt.plot(energy, p_total, c="black", label="Total electrons")
+    plt.axvline(x=13.9, color="r", linestyle="--", label="Spacecraft potential")
 
     plt.legend()
 
@@ -343,35 +326,38 @@ def detectors_to_1d_distribution(detectors: list[electron_detector.ElectronDetec
 
     plt.title("EAS distribution function")
 
-    plt.xscale('log')  
-    plt.yscale('log')  
+    plt.xscale("log")
+    plt.yscale("log")
     plt.show()
 
 
 @allow_mesh
-def interactive_plot_mesh_with_typed_trajectories(mesh: DataSet, trajectories: list[Tuple[list[vector], CollisionTypes]] ) -> None:
+def interactive_plot_mesh_with_typed_trajectories(
+    mesh: DataSet, trajectories: list[Tuple[list[vector], CollisionTypes]]
+) -> None:
     plotter = Plotter()
-    plotter.add_mesh(mesh, scalars= "gmsh:physical")  # type: ignore
+    plotter.add_mesh(mesh, scalars="gmsh:physical")  # type: ignore
 
     # plotter.add_mesh(pyvista.core.utilities.points.lines_from_points([[0,0,0], [-10,0,0]]), color="green")
     for trajectory in trajectories:
         # print(trajectory)
 
-
-        line = pyvista.core.utilities.points.lines_from_points(trajectory[0]) # type: ignore
+        line = pyvista.core.utilities.points.lines_from_points(trajectory[0])  # type: ignore
         color = "black"
         if trajectory[1] == CollisionTypes.Spacecraft:
             color = "red"
         if trajectory[1] == CollisionTypes.Boundary:
             color = "blue"
-        plotter.add_mesh(line, color=color) # type: ignore
+        plotter.add_mesh(line, color=color)  # type: ignore
     plotter.show()  # type: ignore
 
 
 @allow_mesh
-def interactive_plot_electron_detectors(mesh: DataSet, detectors: list[electron_detector.ElectronDetector] ) -> None:
+def interactive_plot_electron_detectors(
+    mesh: DataSet, detectors: list[electron_detector.ElectronDetector]
+) -> None:
     plotter = Plotter()
-    plotter.add_mesh(mesh, scalars= "gmsh:physical")  # type: ignore
+    plotter.add_mesh(mesh, scalars="gmsh:physical")  # type: ignore
 
     # plotter.add_mesh(pyvista.core.utilities.points.lines_from_points([[0,0,0], [-10,0,0]]), color="green")
     for detector in detectors:
@@ -385,7 +371,7 @@ def interactive_plot_electron_detectors(mesh: DataSet, detectors: list[electron_
             # if not particle.collision_type == CollisionTypes.Spacecraft:
             #     continue
 
-            line = pyvista.core.utilities.points.lines_from_points(particle.position_history) # type: ignore
+            line = pyvista.core.utilities.points.lines_from_points(particle.position_history)  # type: ignore
             color = "black"
             if particle.collision_type == CollisionTypes.Spacecraft:
                 color = "red"
@@ -393,14 +379,16 @@ def interactive_plot_electron_detectors(mesh: DataSet, detectors: list[electron_
                 color = "blue"
             if particle.probability_photo is not None and particle.probability_photo > 0:
                 color = "yellow"
-            plotter.add_mesh(line, color=color) # type: ignore
+            plotter.add_mesh(line, color=color)  # type: ignore
     plotter.show()  # type: ignore@allow_mesh
 
 
 @allow_mesh
-def interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh: DataSet, detectors: list[electron_detector.ElectronDetector] ) -> None:
+def interactive_plot_electron_detectors_differentiate_detectors_by_color(
+    mesh: DataSet, detectors: list[electron_detector.ElectronDetector]
+) -> None:
     plotter = Plotter()
-    plotter.add_mesh(mesh, scalars= "gmsh:physical")  # type: ignore
+    plotter.add_mesh(mesh, scalars="gmsh:physical")  # type: ignore
 
     # plotter.add_mesh(pyvista.core.utilities.points.lines_from_points([[0,0,0], [-10,0,0]]), color="green")
     for detector in detectors:
@@ -414,7 +402,7 @@ def interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh: D
             # if not particle.collision_type == CollisionTypes.Spacecraft:
             #     continue
 
-            line = pyvista.core.utilities.points.lines_from_points(particle.position_history) # type: ignore
+            line = pyvista.core.utilities.points.lines_from_points(particle.position_history)  # type: ignore
             color = "black"
             if detector.backtracking_type == electron_detector.BacktrackingTypes.Euler:
                 color = "red"
@@ -422,21 +410,22 @@ def interactive_plot_electron_detectors_differentiate_detectors_by_color(mesh: D
                 color = "blue"
             if detector.backtracking_type == electron_detector.BacktrackingTypes.Boris:
                 color = "orange"
-            plotter.add_mesh(line, color=color) # type: ignore
+            plotter.add_mesh(line, color=color)  # type: ignore
     plotter.show()  # type: ignore@allow_mesh
 
 
-
 @allow_mesh
-def interactive_plot_electron_detectors_XY(mesh: DataSet, detectors: list[electron_detector.ElectronDetector] ) -> None:
+def interactive_plot_electron_detectors_XY(
+    mesh: DataSet, detectors: list[electron_detector.ElectronDetector]
+) -> None:
     plotter = Plotter()
-    plotter.add_mesh(mesh, scalars= "gmsh:physical")  # type: ignore
+    plotter.add_mesh(mesh, scalars="gmsh:physical")  # type: ignore
 
     # plotter.add_mesh(pyvista.core.utilities.points.lines_from_points([[0,0,0], [-10,0,0]]), color="green")
     for detector in detectors:
         # print(trajectory)
         for particle in detector.result_accumulator.particles:
-            if not  (0 < (particle.origin[1]) < 0.1):
+            if not (0 < (particle.origin[1]) < 0.1):
                 continue
 
             # if not (particle.probability_photo is not None and particle.probability_photo > 0):
@@ -447,7 +436,7 @@ def interactive_plot_electron_detectors_XY(mesh: DataSet, detectors: list[electr
             # if not particle.collision_type == CollisionTypes.Spacecraft:
             #     continue
 
-            line = pyvista.core.utilities.points.lines_from_points(particle.position_history) # type: ignore
+            line = pyvista.core.utilities.points.lines_from_points(particle.position_history)  # type: ignore
             color = "black"
             if detector.backtracking_type == electron_detector.BacktrackingTypes.Euler:
                 color = "red"
@@ -455,20 +444,22 @@ def interactive_plot_electron_detectors_XY(mesh: DataSet, detectors: list[electr
                 color = "green"
             if detector.backtracking_type == electron_detector.BacktrackingTypes.Boris:
                 color = "blue"
-            plotter.add_mesh(line, color=color) # type: ignore
+            plotter.add_mesh(line, color=color)  # type: ignore
     plotter.show()  # type: ignore@allow_mesh
 
 
 @allow_mesh
-def interactive_plot_electron_detectors_XZ(mesh: DataSet, detectors: list[electron_detector.ElectronDetector] ) -> None:
+def interactive_plot_electron_detectors_XZ(
+    mesh: DataSet, detectors: list[electron_detector.ElectronDetector]
+) -> None:
     plotter = Plotter()
-    plotter.add_mesh(mesh, scalars= "gmsh:physical")  # type: ignore
+    plotter.add_mesh(mesh, scalars="gmsh:physical")  # type: ignore
 
     # plotter.add_mesh(pyvista.core.utilities.points.lines_from_points([[0,0,0], [-10,0,0]]), color="green")
     for detector in detectors:
         # print(trajectory)
         for particle in detector.result_accumulator.particles:
-            if not  (0 < (particle.origin[0]) < 0.1):
+            if not (0 < (particle.origin[0]) < 0.1):
                 continue
 
             # if not (particle.probability_photo is not None and particle.probability_photo > 0):
@@ -479,7 +470,7 @@ def interactive_plot_electron_detectors_XZ(mesh: DataSet, detectors: list[electr
             # if not particle.collision_type == CollisionTypes.Spacecraft:
             #     continue
 
-            line = pyvista.core.utilities.points.lines_from_points(particle.position_history) # type: ignore
+            line = pyvista.core.utilities.points.lines_from_points(particle.position_history)  # type: ignore
             color = "black"
             if detector.backtracking_type == electron_detector.BacktrackingTypes.Euler:
                 color = "red"
@@ -487,8 +478,9 @@ def interactive_plot_electron_detectors_XZ(mesh: DataSet, detectors: list[electr
                 color = "green"
             if detector.backtracking_type == electron_detector.BacktrackingTypes.Boris:
                 color = "blue"
-            plotter.add_mesh(line, color=color) # type: ignore
+            plotter.add_mesh(line, color=color)  # type: ignore
     plotter.show()  # type: ignore@allow_mesh
+
 
 @allow_mesh
 def save_mesh(
@@ -525,9 +517,11 @@ def slice_and_save(
     path: Path | None = None,
     filename: str | None = None,
     screenshot_size: float | None = None,
-    percentile: float | None | typing.Sequence[float] = 0.05, # TODO RENAME to better reflect option of adding a sequence
-    view_up: vector|None = None,
-    component: int|None = None,
+    percentile: float
+    | None
+    | typing.Sequence[float] = 0.05,  # TODO RENAME to better reflect option of adding a sequence
+    view_up: vector | None = None,
+    component: int | None = None,
 ) -> None:
     if path is None:
         path = Settings.default_output_path
@@ -543,7 +537,7 @@ def slice_and_save(
     if percentile is not None:
         if isinstance(percentile, collections.abc.Sequence):
             clim = (percentile[0], percentile[1])
-        else :
+        else:
             clim = _calculate_percentile(mesh, property=property, percentile=percentile)
     else:
         clim = None
@@ -553,10 +547,10 @@ def slice_and_save(
     plotter.add_mesh(mesh, scalars=property, clim=clim, component=component)  # type: ignore
 
     plotter.enable_parallel_projection()  # type: ignore
-    plotter.camera_position = [normal, slice_origin, (0,1,0)] 
+    plotter.camera_position = [normal, slice_origin, (0, 1, 0)]
 
     if view_up is not None:
-        plotter.set_viewup(view_up) # type: ignore
+        plotter.set_viewup(view_up)  # type: ignore
 
     plotter.screenshot(filename=path, scale=screenshot_size)  # type: ignore
 
@@ -571,7 +565,7 @@ def xz_slice(
     filename: str | None = None,
     screenshot_size: float | None = None,
     percentile: float | None = None,
-    component: int|None = None,
+    component: int | None = None,
 ) -> None:
     if path is None:
         path = Settings.default_output_path
@@ -591,7 +585,7 @@ def xz_slice(
         screenshot_size=screenshot_size,
         percentile=percentile,
         view_up=PlaneNormals.XY,
-        component=component
+        component=component,
     )
 
 
@@ -605,7 +599,7 @@ def xy_slice(
     filename: str | None = None,
     screenshot_size: float | None = None,
     percentile: float | None = None,
-    component: int|None = None,
+    component: int | None = None,
 ) -> None:
     if path is None:
         path = Settings.default_output_path
@@ -625,10 +619,8 @@ def xy_slice(
         screenshot_size=screenshot_size,
         percentile=percentile,
         view_up=PlaneNormals.XZ_flipped,
-        component=component
+        component=component,
     )
-
-
 
 
 @allow_mesh
@@ -641,7 +633,7 @@ def yz_slice(
     filename: str | None = None,
     screenshot_size: float | None = None,
     percentile: float | None = None,
-    component: int|None = None,
+    component: int | None = None,
 ) -> None:
     if percentile is None:
         percentile = Settings.percentile
@@ -660,7 +652,7 @@ def yz_slice(
         screenshot_size=screenshot_size,
         percentile=percentile,
         view_up=PlaneNormals.XZ,
-        component=component
+        component=component,
     )
 
 
@@ -680,7 +672,9 @@ def glob_properties(
     ignore_num_kernel: bool = True,
     exclude: str | None = None,
 ) -> list[tuple[Mesh, "str"]]:
-    return utils.glob_properties(input=input, property=property, ignore_num_kernel=ignore_num_kernel, exclude=exclude)
+    return utils.glob_properties(
+        input=input, property=property, ignore_num_kernel=ignore_num_kernel, exclude=exclude
+    )
 
 
 def make_gif_xz_slice(
