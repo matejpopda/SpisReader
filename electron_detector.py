@@ -13,6 +13,7 @@ import pandas as pd
 import logging as log
 import pickle
 from multiprocessing import Pool
+import pyvista
 
 import default_settings
 import numpy.typing as npt
@@ -25,7 +26,6 @@ Vector2D: TypeAlias = npt.NDArray[np.floating[typing.Any]]
 DEFAULT_PROJECTION_DIRECTION: Vector3D = np.array([1,0,0])
 
 
-MAX_PROCESSES = 5
 
 DETECTOR: "ElectronDetector" = None
 
@@ -89,12 +89,15 @@ class Electron:
     def append_position_to_history(self):
         self.position_history.append(self.position)
 
+    def get_speed(self):
+        speed_squared = self.velocity[0]**2 + self.velocity[1]**2 + self.velocity[2]**2
+
+        return np.sqrt(speed_squared)
+
     def get_energy(self):
         speed_squared = self.velocity[0]**2 + self.velocity[1]**2 + self.velocity[2]**2 
 
-        energy = 0.5 * speed_squared * self.MASS
-
-        
+        energy = 0.5 * speed_squared * self.MASS        
 
         return energy / scipy.constants.value("electron volt-joule relationship")
 
@@ -521,12 +524,13 @@ class ElectronDetector:
         
         return norm_distribution_speed(electron.velocity)
 
-    def get_electric_field(self, position: Vector3D) -> Vector3D:
-        id: int = self.e_field_mesh.find_closest_cell(position) #type: ignore 
-        if id == -1: 
-            raise Exception
-        result = self.e_field_mesh["vector_electric_field"][id]
-        return result
+    def get_electric_field(self, position: Vector3D) -> Vector3D: 
+        p = pyvista.wrap(position)
+
+        E = p.sample(self.e_field_mesh)
+
+        return np.array(E.point_data['vector_electric_field'][0])
+
     
     def get_plasma_potential(self, position: Vector3D) -> Vector3D:
         id: int = self.plasma_potential_mesh.mesh.find_closest_point(position) #type: ignore 
