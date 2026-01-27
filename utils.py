@@ -150,9 +150,11 @@ def glob_properties(
     return result
 
 
-def generate_efield_vector_property(simulation: Simulation):
+def generate_efield_vector_property(simulation: Simulation, efield_from_potential):
     x_value = glob_properties(simulation, "*finalplasma_elec_field_Ex*")
-    assert len(x_value) == 1
+    if len(x_value) != 1:
+        log.info("Electric field is not in the Spis folder, generating one from potential")
+        return efield_from_potential
     x_property_name = x_value[0][1]
     # print(x_value[0][0].mesh.point_data)
     x_array = x_value[0][0].mesh.get_array(x_property_name, "point") # type: ignore

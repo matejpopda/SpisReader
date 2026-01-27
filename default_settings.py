@@ -19,6 +19,8 @@ class Settings:
     # If set to none, then the pickle is saved in the location where the spis output is
     default_pickle_path: Path|None = Path("./temp")
 
+    number_of_threads: int = 1
+
     @classmethod
     def print_current_settings(cls):
         print("--------------------------------------------------")
@@ -27,5 +29,6 @@ class Settings:
         print(f"Lazy loading is {cls.lazy_loading}")
         print(f"Percentile is {cls.percentile}")
         print(f"Load only final times for some of the SPIS outputs is {cls.reduced_numerical_kernel}")
+        print(f"Number of threads is {cls.number_of_threads}")
         print("--------------------------------------------------")
 

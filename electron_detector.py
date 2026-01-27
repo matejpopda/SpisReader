@@ -189,7 +189,7 @@ class ResultAccumulator:
 
 class ElectronDetector:
     def __init__(self, data: simulation.Simulation, position:Vector3D, radius:float,  energy:float, facing:Vector3D = np.array([-1, 0, 0]),updirection:Vector3D = np.array([0, 1 ,0])
-                 , acceptance_angle_phi: float = np.pi * 2 ,acceptance_angle_theta: float = np.pi, number_of_samples_theta: int = 5, number_of_samples_phi: int = 5, max_number_of_steps: int = 10, boundary_temperature: float = 103000 ) -> None:
+                 , acceptance_angle_phi: float = np.pi * 2 ,acceptance_angle_theta: float = np.pi, number_of_samples_theta: int = 5, number_of_samples_phi: int = 5, max_number_of_steps: int = 10, boundary_temperature: float|None = None ) -> None:
         self.particles: list[Electron] = []
         self.position: Vector3D = position
         self.orientation: Vector3D = facing
@@ -222,8 +222,10 @@ class ElectronDetector:
 
 
         # probability calc
-        self.boundary_temperature = boundary_temperature #for 8.9 eV its 103000
-
+        if boundary_temperature is not None:
+            self.boundary_temperature = boundary_temperature # in K (ie for 8.9 eV its 103000K)
+        else:
+            self.boundary_temperature = float(self.simulation.results.global_parameters["electronTemperature"]) * 11604.518 #Converting from eV to K
 
 
         # Settings for random drawing
@@ -235,7 +237,6 @@ class ElectronDetector:
         self.orientation = utils.normalize(self.orientation)
         self.updirection = utils.normalize(self.updirection)
 
-        self.e_field_mesh = utils.generate_efield_vector_property(self.simulation) # Contains "vector_electric_field"
         density_val = utils.glob_properties(self.simulation, "final_elec1_charge_density*")
         utils.glob_properties(self.simulation, "*final_photoElec_charge_density*")
         utils.glob_properties(self.simulation, "*final_secondElec_BS*")
@@ -254,6 +255,10 @@ class ElectronDetector:
         assert len(potential_val) == 1 
         self.potential_name = potential_val[0][1]
         self.electric_field_from_potential = potential_val[0][0].mesh.compute_derivative(scalars=self.potential_name)
+        self.electric_field_from_potential.rename_array("gradient", "vector_electric_field")
+
+        self.e_field_mesh = utils.generate_efield_vector_property(self.simulation, self.electric_field_from_potential) # Contains "vector_electric_field"
+
 
 
     def get_trajectories(self):
@@ -347,11 +352,11 @@ class ElectronDetector:
 
 
         with Pool(
-            processes=MAX_PROCESSES,
+            processes=default_settings.Settings.number_of_threads,
             initializer=init_worker,
             initargs=(self,)
         ) as pool:
-            updated_particles = list(pool.imap_unordered(backtrack_worker, range(len(self.particles)), max(1, len(self.particles) // MAX_PROCESSES)))
+            updated_particles = list(pool.imap_unordered(backtrack_worker, range(len(self.particles)), max(1, len(self.particles) // default_settings.Settings.number_of_threads)))
 
         self.particles = updated_particles
         for electron in self.particles:

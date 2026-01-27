@@ -36,7 +36,17 @@ def main():
 
     path = pathlib.Path(config["Simulation"]["path"])
 
+    name_prefix = str(config["Saving"]["name_prefix"])
+
+    default_settings.Settings.default_output_path = pathlib.Path(config["Saving"]["default_output_path"])
+    default_settings.Settings.default_pickle_path = pathlib.Path(config["Saving"]["default_pickle_path"])
+    default_settings.Settings.percentile = float(config["Plotting"]["cutoff"])
     
+    default_settings.Settings.lazy_loading = bool(config["Loading"]["lazy_loading"])
+    default_settings.Settings.reduced_numerical_kernel = bool(config["Loading"]["reduced_numerical_kernel_loading"])
+    default_settings.Settings.number_of_threads = int(config["Multithreading"]["number_of_threads"])
+
+
     default_settings.Settings.print_current_settings()
 
     simulation = reader.load_simulation(path, force_processing=False)
@@ -59,17 +69,17 @@ def main():
     energy = float(config["Detector"]["energy"])
 
 
-    boundary_temperature = float(config["Simulation"]["boundary_temperature"])
+
+
 
     detector = electron_detector.ElectronDetector(simulation,position=position, facing=facing, updirection=updirection, radius=radius, acceptance_angle_phi=acceptance_angle_phi, acceptance_angle_theta=acceptance_angle_theha,
-                                                  number_of_samples_phi=number_of_samples_phi, number_of_samples_theta=number_of_samples_theha, max_number_of_steps=max_number_of_steps, energy=energy, boundary_temperature=boundary_temperature)
+                                                  number_of_samples_phi=number_of_samples_phi, number_of_samples_theta=number_of_samples_theha, max_number_of_steps=max_number_of_steps, energy=energy)
 
 
 
     print("Started energy " , energy) 
     detector.backtrack()
-    assert default_settings.Settings.default_pickle_path is not None
-    detector.save_self(default_settings.Settings.default_pickle_path / f"Detector_energy={energy}.pkl")
+    detector.save_self(default_settings.Settings.default_output_path / f"Detector_energy={energy}.pkl")
     print("Ended energy ", energy)
 
     detector = reader.load_pickle(pathlib.Path("./temp/Detector_energy=50.0.pkl"))

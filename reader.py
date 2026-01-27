@@ -301,7 +301,7 @@ def ordered_list_of_meshes(path: Path, start_of_file_name: str, end_of_file_name
 
     result.sort(key=lambda mesh: (mesh.time is None, mesh.time))
 
-    if default_settings.Settings.reduced_numerical_kernel is True: 
+    if default_settings.Settings.reduced_numerical_kernel is True and len(result) != 0: 
         result = [result.pop()]
     return result
 
@@ -335,7 +335,7 @@ def ordered_list_of_distribution2D(
 
     result.sort(key=lambda distribution: (distribution.time is None, distribution.time))
 
-    if default_settings.Settings.reduced_numerical_kernel is True: 
+    if default_settings.Settings.reduced_numerical_kernel is True and len(result) != 0: 
         result = [result.pop()]
     
     return result
@@ -574,6 +574,9 @@ def save_simulation_as_pickle(simulation: Simulation, path: Path):
         + str(len(pickle.dumps(serialized_data)) // 1000**2)
         + " megabytes"
     )
+
+    if not path.parent.exists():
+        path.parent.mkdir()
     with open(path, "wb") as f:
         f.write(serialized_data)
     log.info("Saved the data to " + str(path))
