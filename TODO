@@ -1,0 +1,15 @@
+
+2d trajectories - 
+plot error of each method for different dts. 
+
+Calculate electric field from potential. # dont forget its flipped
+
+Interpolate the electric field.
+
+Figure out why there is an error in the last image. 
+
+
+
+
+
+Default settings should be in the config file

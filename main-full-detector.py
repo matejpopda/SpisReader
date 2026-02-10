@@ -7,8 +7,6 @@ import electron_detector
 import numpy as np
 import configparser
 import argparse
-import pickle
-import plotters
 
 import matplotlib
 
@@ -26,24 +24,12 @@ def main():
         path_string = args.Input
     else:
         log.error("Missing config file path")
-        path_string = r"C:\Users\matej\OneDrive - České vysoké učení technické v Praze\Plocha\Dulezite\Skola\vyzkumak\SpisReader\example.config"
+        path_string = "C:/temp/DP/SpisReader/example.config"
 
     config = configparser.ConfigParser()
     config.read(path_string)
 
     path = pathlib.Path(config["Simulation"]["path"])
-
-    name_prefix = str(config["Saving"]["name_prefix"])
-
-    default_settings.Settings.default_output_path = pathlib.Path(config["Saving"]["default_output_path"])
-    default_settings.Settings.default_pickle_path = pathlib.Path(config["Saving"]["default_pickle_path"])
-    default_settings.Settings.percentile = float(config["Plotting"]["cutoff"])
-
-    default_settings.Settings.lazy_loading = bool(config["Loading"]["lazy_loading"])
-    default_settings.Settings.reduced_numerical_kernel = bool(
-        config["Loading"]["reduced_numerical_kernel_loading"]
-    )
-    default_settings.Settings.number_of_threads = int(config["Multithreading"]["number_of_threads"])
 
     default_settings.Settings.print_current_settings()
 
@@ -83,6 +69,8 @@ def main():
 
     energy = float(config["Detector"]["energy"])
 
+    boundary_temperature = float(config["Simulation"]["boundary_temperature"])
+
     detector = electron_detector.ElectronDetector(
         simulation,
         position=position,
@@ -95,18 +83,14 @@ def main():
         number_of_samples_theta=number_of_samples_theha,
         max_number_of_steps=max_number_of_steps,
         energy=energy,
+        boundary_temperature=boundary_temperature,
     )
 
     print("Started energy ", energy)
     detector.backtrack()
-    detector.save_self(default_settings.Settings.default_output_path / f"Detector_energy={energy}.pkl")
+    assert default_settings.Settings.default_pickle_path is not None
+    detector.save_self(default_settings.Settings.default_pickle_path / f"Detector_energy={energy}.pkl")
     print("Ended energy ", energy)
-
-    detector = reader.load_pickle(pathlib.Path("./temp/Detector_energy=50.0.pkl"))
-
-    detector.result_accumulator.plot()
-
-    plotters.interactive_plot_electron_detectors(simulation.preprocessing.model.mesh, [detector])
 
 
 if __name__ == "__main__":
